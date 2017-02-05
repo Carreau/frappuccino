@@ -81,7 +81,7 @@ class Visitor:
         return visitor(node)
 
     def visit_metaclass_instance(self, meta_instance):
-        #print('visiting meta instance', meta_instance)
+        return self.visit_type(meta_instance)
         pass
 
     def visit_unknown(self, unknown):
@@ -110,17 +110,23 @@ class Visitor:
         self.collected.add(fullqual)
         self.spec[fullqual] = sig
         self._consistent(fullqual, function)
+        return fullqual
 
     def visit_instance(self, instance):
-        #print('    vis instance', instance)
+        log.debug('    vis instance', instance)
         pass
 
 
     def visit_type(self, type_):
+        local_key = type_.__module__ + '.' + type_.__name__
+        items = []
         logger.debug('Class %s' % type_.__module__ + '.' + type_.__name__)
         for k, v in sorted(type_.__dict__.items()):
             if not k.startswith('_'):
-                self.visit(v)
+                items.append(self.visit(v))
+        items = list(filter(None, items))
+        self.spec[local_key] = items
+        return local_key
 
 
     def visit_module(self, module):
@@ -132,11 +138,13 @@ class Visitor:
             if k.startswith('_'):
                 continue
             else:
-                self.visit(v)
+                res = self.visit(v)
 
 
-if __name__ == '__main__':
 
+
+
+def main():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -203,4 +211,5 @@ if __name__ == '__main__':
                 print("         %s%s" % (key,l))
                 print("current> %s%s" % (key,s))
 
-
+if __name__ == '__main__':
+    main()
