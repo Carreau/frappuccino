@@ -2,9 +2,12 @@
 Frappucinno
 """
 
+__version__ = '0.0.1'
 
 
 
+
+import importlib
 import inspect
 import sys
 import types
@@ -40,6 +43,7 @@ class Visitor:
 
         # set of object keys that where deemed worth collecting
         self.collected = set({})
+        self.rejected = list()
 
 
         # dict of key -> custom spec that should be serialised for comparison
@@ -52,20 +56,27 @@ class Visitor:
     def _consistent(self, key, value):
         if key in self._consistency:
             if self._consistency[key] is not value:
-                print("Warning %s is not %s, results may not be consistent" % (self._consistency[key], value))
+                logger.debug("Warning %s is not %s, results may not be consistent" % (self._consistency[key], value))
         else:
             self._consistency[key] = value
 
 
 
     def visit(self, node):
-
-        if node in self.visited:
+        try:
+            if id(node) in [id(x) for x in self.visited]:
+                return
+            else:
+                self.visited.append(node)
+        except TypeError:
+            # non equalable things (eg dtype/moduel)
             return
-        else:
-            self.visited.append(node)
+        except ValueError:
+            import IPython
+            IPython.embed()
         mod = getattr(node, '__module__', None)
         if mod and not mod.startswith(self.name):
+            self.rejected.append(node)
             # print('skipping | ', node.__module__, '|', node)
             return
 
@@ -85,18 +96,19 @@ class Visitor:
         pass
 
     def visit_unknown(self, unknown):
+        self.rejected.append(unknown)
 
-        print('Unknown: ========')
-        print('Unknown: No clue what to do with', unknown)
-        print('Unknown: isinstance(node, object)', isinstance(unknown, object))
-        print('Unknown: isinstance(node, type)', isinstance(unknown, type))
-        print('Unknown: type(node)', type(unknown))
+        logger.debug('Unknown: ========')
+        logger.debug('Unknown: No clue what to do with %s', unknown)
+        logger.debug('Unknown: isinstance(node, object) %s', isinstance(unknown, object))
+        logger.debug('Unknown: isinstance(node, type) %s', isinstance(unknown, type))
+        logger.debug('Unknown: type(node) %s', type(unknown))
         if type(unknown) is type:
-            print('Unknown: issubclass(unknown, type)', issubclass(unknown, type))
-        print('Unknown: issubclass(type(unknown), type)', issubclass(type(unknown), type), type(unknown))
-        print('Unknown: type(unknown) is type : ', type(unknown) is type)
-        print('Unknown: hasattr(unknown, "__call__"): ', hasattr(unknown, "__call__"))
-        print('Unknown: ========')
+            logger.debug('Unknown: issubclass(unknown, type) %s', issubclass(unknown, type))
+        logger.debug('Unknown: issubclass(type(unknown), type) %s %s', issubclass(type(unknown), type), type(unknown))
+        logger.debug('Unknown: type(unknown) is type :  %s', type(unknown) is type)
+        logger.debug('Unknown: hasattr(unknown, "__call__"):  %s', hasattr(unknown, "__call__"))
+        logger.debug('Unknown: ========')
 
     def visit_function(self, function):
         klass = function.__class__
@@ -105,7 +117,10 @@ class Visitor:
         else:
             name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = '{}.{}'.format(name, function.__qualname__)
-        sig = str(inspect.signature(function))
+        try:
+            sig = str(inspect.signature(function))
+        except ValueError:
+            return
         logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
         self.spec[fullqual] = sig
@@ -113,7 +128,8 @@ class Visitor:
         return fullqual
 
     def visit_instance(self, instance):
-        log.debug('    vis instance', instance)
+        self.rejected.append(instance)
+        logger.debug('    vis instance %s', instance)
         pass
 
 
@@ -126,18 +142,22 @@ class Visitor:
                 items.append(self.visit(v))
         items = list(filter(None, items))
         self.spec[local_key] = items
+        self.collected.add(local_key)
         return local_key
 
 
     def visit_module(self, module):
         logger.debug('Module %s' % module)
         if not module.__name__.startswith(self.name):
+            logger.debug('out of scope %s vs %s : %s'%(module.__name__, self.name, module.__name__.startswith(self.name)))
             return None
         items = module.__dict__
         for k, v in sorted(items.items()):
             if k.startswith('_'):
+                logger.debug('       -> %s.%s' % (module.__name__,k))
                 continue
             else:
+                logger.debug('       +> %s.%s' % (module.__name__,k))
                 res = self.visit(v)
 
 
@@ -147,16 +167,13 @@ class Visitor:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser('Argparser for foo')
+    parser.add_argument('modules', metavar='modules', type=str, nargs='+', help='root modules and submodules')
     parser.add_argument('--save', action='store_true')
     parser.add_argument('--compare', action='store_true')
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument('modules', nargs='*')
 
-    argparse.ArgumentParser.add_argument
-
-    options = parser.parse_args(sys.argv)
-    options.modules.remove('__init__.py')
+    options = parser.parse_args()
 
     if options.save and options.compare:
         print('options `--save` and `--compare` are exclusive')
@@ -168,22 +185,29 @@ def main():
         logger.debug('after')
 
 
-    print("let's go")
-    if len(sys.argv) > 1:
-        module_name = sys.argv[1]
-    else:
-        module_name = 'IPython'
+    rootname = options.modules[0]
+    V = Visitor(rootname.split('.')[0])
+    for module_name in options.modules:
+        try:
+            module = importlib.import_module(module_name)
+            V.visit(module)
+        except (ImportError, RuntimeError):
+            print('skip...', module_name)
+            pass
 
-    module = __import__(module_name)
 
-    V = Visitor(module_name)
-    V.visit(module)
-    print("Visited", len(V.visited), "objects")
-    print("Collected", len(V.collected), "items")
+    import IPython
+    #IPython.embed()
+
+
+    print("Collected/Visited/rejected", len(V.collected) , len(V.visited), len(V.rejected), "objects")
+
+
+
     if options.save:
         with open('%s.json' % module_name, 'w') as f:
             f.write(json.dumps(V.spec, indent=2))
-    if not options.save:
+    if options.compare:
         with open('%s.json' % module_name, 'r') as f:
             loaded = json.loads(f.read())
 
