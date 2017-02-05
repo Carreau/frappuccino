@@ -12,6 +12,7 @@ import inspect
 import sys
 import types
 import json
+import re
 
 from pprint import pprint
 from types import ModuleType
@@ -19,7 +20,8 @@ from types import ModuleType
 import logging
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.debug('HO')
+
+hexd = re.compile('0x[0-9a-f]+')
 
 def fully_qualified(obj: object) -> str:
     """
@@ -40,6 +42,7 @@ class Visitor:
         # which is weird why not store memory-location -> object ?
         # anyway...
         self.visited = list()
+        self._hash_cache = dict()
 
         # set of object keys that where deemed worth collecting
         self.collected = set({})
@@ -65,15 +68,15 @@ class Visitor:
     def visit(self, node):
         try:
             if id(node) in [id(x) for x in self.visited]:
-                return
+                ## todo, if visited check the localkey and return it.
+                ## otherwise methods moved to superclass will/may be lost.
+                ## or not correctly reported
+                return self._hash_cache.get(id(node))
             else:
                 self.visited.append(node)
         except TypeError:
             # non equalable things (eg dtype/moduel)
             return
-        except ValueError:
-            import IPython
-            IPython.embed()
         mod = getattr(node, '__module__', None)
         if mod and not mod.startswith(self.name):
             self.rejected.append(node)
@@ -89,7 +92,9 @@ class Visitor:
         else:
             type_ = type(node).__name__
         visitor = getattr(self, 'visit_' + type_, self.visit_unknown)
-        return visitor(node)
+        hashv = visitor(node)
+        self._hash_cache[id(node)] = hashv
+        return hashv
 
     def visit_metaclass_instance(self, meta_instance):
         return self.visit_type(meta_instance)
@@ -118,7 +123,8 @@ class Visitor:
             name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = '{}.{}'.format(name, function.__qualname__)
         try:
-            sig = str(inspect.signature(function))
+            import re
+            sig = hexd.sub('0xffffff', str(inspect.signature(function)))
         except ValueError:
             return
         logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
@@ -135,12 +141,12 @@ class Visitor:
 
     def visit_type(self, type_):
         local_key = type_.__module__ + '.' + type_.__name__
-        items = []
+        items = {}
         logger.debug('Class %s' % type_.__module__ + '.' + type_.__name__)
-        for k, v in sorted(type_.__dict__.items()):
+        for k in sorted(dir(type_)):
             if not k.startswith('_'):
-                items.append(self.visit(v))
-        items = list(filter(None, items))
+                items[k] = self.visit(getattr(type_, k))
+        items = {k:v for k,v in items.items() if v}
         self.spec[local_key] = items
         self.collected.add(local_key)
         return local_key
@@ -149,16 +155,16 @@ class Visitor:
     def visit_module(self, module):
         logger.debug('Module %s' % module)
         if not module.__name__.startswith(self.name):
-            logger.debug('out of scope %s vs %s : %s'%(module.__name__, self.name, module.__name__.startswith(self.name)))
+            logger.debug('out of scope %s vs %s : %s' % (
+                module.__name__, self.name, module.__name__.startswith(self.name)))
             return None
-        items = module.__dict__
-        for k, v in sorted(items.items()):
+        for k in dir(module):
             if k.startswith('_'):
-                logger.debug('       -> %s.%s' % (module.__name__,k))
+                logger.debug('       -> %s.%s' % (module.__name__, k))
                 continue
             else:
-                logger.debug('       +> %s.%s' % (module.__name__,k))
-                res = self.visit(v)
+                logger.debug('       +> %s.%s' % (module.__name__, k))
+                res = self.visit(getattr(module, k))
 
 
 
@@ -196,11 +202,7 @@ def main():
             pass
 
 
-    import IPython
-    #IPython.embed()
-
-
-    print("Collected/Visited/rejected", len(V.collected) , len(V.visited), len(V.rejected), "objects")
+    print("Collected/Visited/rejected", len(V.collected), len(V.visited), len(V.rejected), "objects")
 
 
 
@@ -218,22 +220,39 @@ def main():
         removed_keys = lkeys.difference(skeys)
         new_keys = skeys.difference(lkeys)
 
-        print("The following items are new")
+        print("The following items are new, former aliases, or where present on superclass")
         pprint(new_keys)
         print()
 
-        print("The following items have been removed")
+        print("The following canonical items have been removed, are now aliases or moved to super-class")
         pprint(removed_keys)
         print()
 
         print("The following signature differ between versions:")
         for key in common_keys:
-            l = loaded[key]
-            s = V.spec[key]
+            if isinstance(loaded[key], str):
+                l = hexd.sub('0xffffff', loaded[key])
+                s = hexd.sub('0xffffff', V.spec[key])
+            else:
+                l = loaded[key]
+                s = V.spec[key]
+
             if l != s:
-                print()
-                print("         %s%s" % (key,l))
-                print("current> %s%s" % (key,s))
+                if isinstance(s, dict): # Classes / Module?
+                    news = [k for k in s if k not in l]
+                    removed = [k for k in l if k not in s]
+                    if not removed:
+                        continue
+                    print()
+                    print("              %s:%s" % (key, l))
+                    print("Class/Module> %s:%s" % (key, s))
+                    print('              new values are', [k for k in s if k not in l])
+                    print('              removed values are', [k for k in l if k not in s])
+                else:
+                    print()
+                    print("          %s%s" % (key, l))
+                    print("function> %s%s" % (key, s))
+
 
 if __name__ == '__main__':
     main()
