@@ -140,9 +140,9 @@ class Visitor:
 
 
     def visit_type(self, type_):
-        local_key = type_.__module__ + '.' + type_.__name__
+        local_key = type_.__module__ + '.' + type_.__qualname__
         items = {}
-        logger.debug('Class %s' % type_.__module__ + '.' + type_.__name__)
+        logger.debug('Class %s' % type_.__module__ + '.' + type_.__qualname__)
         for k in sorted(dir(type_)):
             if not k.startswith('_'):
                 items[k] = self.visit(getattr(type_, k))
@@ -197,8 +197,9 @@ def main():
         try:
             module = importlib.import_module(module_name)
             V.visit(module)
-        except (ImportError, RuntimeError):
+        except (ImportError, RuntimeError, AttributeError) as e:
             print('skip...', module_name)
+            print(e)
             pass
 
 
@@ -207,10 +208,12 @@ def main():
 
 
     if options.save:
-        with open('%s.json' % module_name, 'w') as f:
+        with open('%s.json' % rootname, 'w') as f:
             f.write(json.dumps(V.spec, indent=2))
+        #import IPython
+        #IPython.embed()
     if options.compare:
-        with open('%s.json' % module_name, 'r') as f:
+        with open('%s.json' % rootname, 'r') as f:
             loaded = json.loads(f.read())
 
         lkeys = set(loaded.keys())
