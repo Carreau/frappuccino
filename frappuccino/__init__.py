@@ -226,9 +226,9 @@ class Visitor:
         #    return
         logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
-        # self.spec[fullqual] = sig
         self.spec[fullqual] = {
-            ':signature:': sig_dump(inspect.signature(function))}
+            'type':'function',
+            'signature': sig_dump(inspect.signature(function))}
         self._consistent(fullqual, function)
         return fullqual
 
@@ -245,7 +245,10 @@ class Visitor:
             if not k.startswith('_'):
                 items[k] = self.visit(getattr(type_, k))
         items = {k: v for k, v in items.items() if v}
-        self.spec[local_key] = items
+        self.spec[local_key] = {
+            'type': 'type',
+            'items': items
+        }
         self.collected.add(local_key)
         return local_key
 
@@ -353,26 +356,29 @@ def main():
                 current_spec = tree_visitor.spec[key]
 
             if from_dump != current_spec:
-                if isinstance(current_spec, dict):  # Classes / Module / Fucntion
-                    if ':signature:' not in current_spec.keys():
-                        removed = [k for k in from_dump if k not in current_spec]
-                        if not removed:
-                            continue
-                        print()
-                        print("Class/Module> %current_spec" % (key))
-                        new = [k for k in current_spec if k not in from_dump]
-                        if new:
-                            print('              new values are', new)
-                        removed = [k for k in from_dump if k not in current_spec]
-                        if removed:
-                            print('              removed values are', removed)
-                    else:
-                        from_dump = from_dump[':signature:']
-                        current_spec = current_spec[':signature:']
-                        print()
-                        print("function> %s" % (key))
-                        print("          %s" % (key))
-                        params_compare(from_dump, current_spec)
+
+                if current_spec['type'] == 'type':  # Classes / Module / Fucntion
+                    current_spec = current_spec['items']
+                    removed = [k for k in from_dump if k not in current_spec]
+                    if not removed:
+                        continue
+                    print()
+                    print("Class/Module> %s" % (key))
+                    new = [k for k in current_spec if k not in from_dump['items']]
+                    if new:
+                        print('              new values are', new)
+                    removed = [k for k in from_dump if k not in current_spec]
+                    if removed:
+                        print('              removed values are', removed)
+                elif current_spec['type'] == 'function':
+                    from_dump = from_dump['signature']
+                    current_spec = current_spec['signature']
+                    print()
+                    print("function> %s" % (key))
+                    print("          %s" % (key))
+                    params_compare(from_dump, current_spec)
+                else:
+                    print('unknown node:', current_spec)
 
 
 if __name__ == '__main__':
