@@ -9,7 +9,6 @@ __version__ = '0.0.1'
 
 import importlib
 import inspect
-import sys
 import types
 import json
 import re
@@ -22,6 +21,35 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 hexd = re.compile('0x[0-9a-f]+')
+
+hexuniformify =  lambda s: hexd.sub('0xffffff', s)
+
+def foo():
+    pass
+
+
+def parameter_dump(p):
+    # TODO: mapping of kind  and drop default if inspect empty + annotations.
+    return {'kind':str(p.kind),
+            'name':p.name,
+            'default': hexuniformify(str(p.default))}
+
+def sig_dump(sig):
+
+    return {k:parameter_dump(v) for k,v in sig.parameters.items()}
+
+
+def signature_from_text(text):
+    loc = {}
+    glob = {}
+    try:
+        exec(compile('from typing import *\ndef function%s:pass' % text,'<fakefile>', 'exec' ), glob, loc)
+        sig = inspect.signature(loc['function'])
+    except Exception as e:
+        print(' failed:>>> def function%s:pass' % text)
+        return inspect.signature(foo)
+        raise
+    return sig
 
 def fully_qualified(obj: object) -> str:
     """
@@ -122,14 +150,15 @@ class Visitor:
         else:
             name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = '{}.{}'.format(name, function.__qualname__)
-        try:
-            import re
-            sig = hexd.sub('0xffffff', str(inspect.signature(function)))
-        except ValueError:
-            return
+        #try:
+        import re
+        sig = hexd.sub('0xffffff', str(inspect.signature(function)))
+        #except ValueError:
+        #    return
         logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
-        self.spec[fullqual] = sig
+        # self.spec[fullqual] = sig
+        self.spec[fullqual] = {':signature:': sig_dump(inspect.signature(function))}
         self._consistent(fullqual, function)
         return fullqual
 
@@ -166,8 +195,22 @@ class Visitor:
                 logger.debug('       +> %s.%s' % (module.__name__, k))
                 res = self.visit(getattr(module, k))
 
+def param_compare(old, new):
+    if old is None:
+        print('     New paramters', repr(new))
+        return
+    print('    ', old , '!=', new)
 
 
+def params_compare(old_ps, new_ps):
+    try:
+        from itertools import zip_longest
+        for (o,ov),(n, nv) in zip_longest(old_ps.items(), new_ps.items(), fillvalue=(None, None)):
+            if o == n and ov == nv:
+                 continue
+            param_compare(ov,nv)
+    except:
+        import ipdb; ipdb.set_trace()
 
 
 def main():
@@ -222,14 +265,14 @@ def main():
         common_keys = skeys.intersection(lkeys)
         removed_keys = lkeys.difference(skeys)
         new_keys = skeys.difference(lkeys)
-
-        print("The following items are new, former aliases, or where present on superclass")
-        pprint(new_keys)
-        print()
-
-        print("The following canonical items have been removed, are now aliases or moved to super-class")
-        pprint(removed_keys)
-        print()
+        if new_keys:
+            print("The following items are new, former aliases, or where present on superclass")
+            pprint(new_keys)
+            print()
+        if removed_keys:
+            print("The following canonical items have been removed, are now aliases or moved to super-class")
+            pprint(removed_keys)
+            print()
 
         print("The following signature differ between versions:")
         for key in common_keys:
@@ -241,20 +284,29 @@ def main():
                 s = V.spec[key]
 
             if l != s:
-                if isinstance(s, dict): # Classes / Module?
-                    news = [k for k in s if k not in l]
-                    removed = [k for k in l if k not in s]
-                    if not removed:
-                        continue
-                    print()
-                    print("              %s:%s" % (key, l))
-                    print("Class/Module> %s:%s" % (key, s))
-                    print('              new values are', [k for k in s if k not in l])
-                    print('              removed values are', [k for k in l if k not in s])
-                else:
-                    print()
-                    print("          %s%s" % (key, l))
-                    print("function> %s%s" % (key, s))
+                if isinstance(s, dict): # Classes / Module / Fucntion
+                    if ':signature:' not in s.keys():
+                        news = [k for k in s if k not in l]
+                        removed = [k for k in l if k not in s]
+                        if not removed:
+                            continue
+                        print()
+                        print("Class/Module> %s" % (key))
+                        new = [k for k in s if k not in l]
+                        if new:
+                            print('              new values are', new)
+                        removed = [k for k in l if k not in s]
+                        if removed :
+                            print('              removed values are', removed)
+                    else:
+                        l  = l[':signature:']
+                        s  = s[':signature:']
+                        print()
+                        print("function> %s" % (key))
+                        print("          %s" % (key))
+                        params_compare(l, s)
+
+
 
 
 if __name__ == '__main__':
