@@ -53,6 +53,7 @@ import importlib
 import inspect
 import types
 import json
+import sys
 import re
 
 from pprint import pprint
@@ -125,7 +126,7 @@ def fully_qualified(obj: object) -> str:
         return '%s.%s' % (obj.__class__.__module__, obj.__class__.__name__)
 
 
-class Visitor:
+class BaseVisitor:
 
     def __init__(self, name):
         self.name = name
@@ -139,19 +140,30 @@ class Visitor:
 
         # set of object keys that where deemed worth collecting
         self.collected = set({})
+
+        # list of object we did not visit (for example, we encounter an object
+        # not from targeted module, from the stdlib....
         self.rejected = list()
 
-        # dict of key -> custom spec that should be serialised for comparison
-        # later.
+        # dict of key -> custom spec that should be serialised for later
+        # comparison later.
         self.spec = dict()
 
         # debug, make sure 2 objects are not getting the same key
         self._consistency = {}
 
     def _consistent(self, key, value):
+        """
+        If the current object we are visiting map to the same key and the same value.
+
+        As we do some normalisation (like for closure that have a `<local>`
+        name, we may end up with things conflicting. This is more prevention in
+        case on one project at some point we get a collision then we can debug
+        that.
+        """
         if key in self._consistency:
             if self._consistency[key] is not value:
-                logger.debug("Warning %s is not %s, results may not be consistent" % (
+                logger.info("Warning %s is not %s, results may not be consistent" % (
                     self._consistency[key], value))
         else:
             self._consistency[key] = value
@@ -171,7 +183,6 @@ class Visitor:
         mod = getattr(node, '__module__', None)
         if mod and not mod.startswith(self.name):
             self.rejected.append(node)
-            # print('skipping | ', node.__module__, '|', node)
             return
 
         if isinstance(node, ModuleType):
@@ -186,6 +197,9 @@ class Visitor:
         hashv = visitor(node)
         self._hash_cache[id(node)] = hashv
         return hashv
+
+class Visitor(BaseVisitor):
+
 
     def visit_metaclass_instance(self, meta_instance):
         return self.visit_type(meta_instance)
@@ -211,6 +225,16 @@ class Visitor:
         logger.debug('Unknown: hasattr(unknown, "__call__"):  %s',
                      hasattr(unknown, "__call__"))
         logger.debug('Unknown: ========')
+
+
+    def visit_method_descriptor(self, meth):
+        pass
+
+    def visit_builtin_function_or_method(self, b):
+        pass
+
+    def visit_method(self, b):
+        return self.visit_function(b)
 
     def visit_function(self, function):
         klass = function.__class__
@@ -259,11 +283,11 @@ class Visitor:
                 module.__name__, self.name, module.__name__.startswith(self.name)))
             return None
         for k in dir(module):
-            if k.startswith('_'):
-                logger.debug('       -> %s.%s' % (module.__name__, k))
+            if k.startswith('_') and not (k.startswith('__') and k.endswith('__')):
+                logger.debug('       skipping private attribute: %s.%s' % (module.__name__, k))
                 continue
             else:
-                logger.debug('       +> %s.%s' % (module.__name__, k))
+                logger.debug('       visiting public attribute; %s.%s' % (module.__name__, k))
                 self.visit(getattr(module, k))
 
 
@@ -289,23 +313,21 @@ def params_compare(old_ps, new_ps):
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser('Argparser for foo')
+    parser = argparse.ArgumentParser('frappuccino')
     parser.add_argument('modules', metavar='modules', type=str,
                         nargs='+', help='root modules and submodules')
-    parser.add_argument('--save', action='store_true')
-    parser.add_argument('--compare', action='store_true')
+    parser.add_argument('--save', action='store', help='file to dump API to', metavar='<file>')
+    parser.add_argument('--compare', action='store', help='file with dump API to compare to', metavar='<file>')
     parser.add_argument('--debug', action='store_true')
 
     options = parser.parse_args()
 
     if options.save and options.compare:
-        print('options `--save` and `--compare` are exclusive')
         parser.print_help()
+        sys.exit('options `--save` and `--compare` are exclusive')
 
     if options.debug:
-        logger.debug('before')
         logger.setLevel('DEBUG')
-        logger.debug('after')
 
     rootname = options.modules[0]
     tree_visitor = Visitor(rootname.split('.')[0])
@@ -314,19 +336,18 @@ def main():
             module = importlib.import_module(module_name)
             tree_visitor.visit(module)
         except (ImportError, RuntimeError, AttributeError) as e:
-            print('skip...', module_name)
+            print('skipping ...', module_name)
             print(e)
 
-    print("Collected/Visited/rejected", len(tree_visitor.collected),
-          len(tree_visitor.visited), len(tree_visitor.rejected), "objects")
+    print("Collected:", len(tree_visitor.collected),
+          "Visited:", len(tree_visitor.visited), 
+          "Rejected:", len(tree_visitor.rejected))
 
     if options.save:
-        with open('%s.json' % rootname, 'w') as f:
+        with open(options.save, 'w') as f:
             f.write(json.dumps(tree_visitor.spec, indent=2))
-        #import IPython
-        # IPython.embed()
     if options.compare:
-        with open('%s.json' % rootname, 'r') as f:
+        with open(options.compare, 'r') as f:
             loaded = json.loads(f.read())
 
         lkeys = set(loaded.keys())
