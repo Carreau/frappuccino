@@ -1,10 +1,16 @@
 """Frappucinno
 
+
+DEPRECATED/UNUSED
+
+This was a proof of concept trying to visit the AST, though Python is dynamic
+enough that this is often too limited. in the end I choose to go with actually
+importing things, and walking every reachable object which fully qualified name
+does start with give prefixes.
+
 Freeze your API and make sure you do not introduce backward incompatibilities
 """
 import ast
-from pprint import pprint
-__version__ = '0.0.1'
 
 test1 = """
 
@@ -36,8 +42,10 @@ class Bird:
         pass
 """
 
+
 def keyfy(s):
     return '"%s":' % s
+
 
 class APIVisitor:
     """
@@ -74,7 +82,7 @@ class APIVisitor:
                     vv = self.visit(item)
                     res.append(vv)
             elif isinstance(value, dict):
-                for k,v in value:
+                for k, v in value:
                     res.append(self.visit(v))
                 res.append(self.visit(value))
         if not res:
@@ -130,25 +138,23 @@ class DoubleTreeVisitor:
                 res.append(self.visit(value))
         return list(filter(None, res))
 
-
     def visit_ClassDef(self, old_class, new_class, name):
-        missing_attributes = set(old_class['attributes'].keys()).difference(set(new_class['attributes'].keys()))
+        missing_attributes = set(old_class['attributes'].keys()).difference(
+            set(new_class['attributes'].keys()))
         if missing_attributes:
-            print('Class `{}` has lost non deprecated and non private following attributes : {}'.format(name,  *missing_attributes))
-        
+            print('Class `{}` has lost non deprecated and non private following attributes : {}'.format(
+                name, *missing_attributes))
+
         self.generic_visit(old_class, new_class)
-
-
 
 
 if __name__ == '__main__':
     tree = ast.parse(test1)
     serialized_tree = APIVisitor().visit(tree)
-    
+
     # pprint(serialized_tree)
 
     tree2 = ast.parse(test2)
     serialized_tree2 = APIVisitor().visit(tree2)
-
 
     dt = DoubleTreeVisitor().visit(serialized_tree, serialized_tree2)
