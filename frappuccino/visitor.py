@@ -20,17 +20,31 @@ class BaseVisitor:
     The generic `visit` method will dispatch on the given `visit_*` method when
     it visit a given type, and will fallback on `visit_unknown(self, obj)` if no
     corresponding method is found.
+
+
+    TODO: figure out and document when to add stuff to rejected, collected, and
+    visited, as well as the exact meaning.
+
+    Consider having a `(rejected, reason)` tuple. I can already see a couple of
+    reasons:
+        1) out of scope (import from another library, which is still exposed)
+        2) Private field
+        3) Black/whitelisted while in dev.
     """
 
-    def __init__(self, name:str, *, logger=None):
+    def __init__(self, name: str, *, logger=None):
         """
-        
+
         Parameters
         ==========
-        
+
         name: str
-           Base name of a module to inspect. All found module which fully qualified
-           name do not start with this will not be recursed into.
+            Base name of a module to inspect. All found module which fully qualified
+            name do not start with this will not be recursed into.
+        logger: Logger
+            Logger instance to use to print debug messages.
+
+
 
         """
 
@@ -79,6 +93,12 @@ class BaseVisitor:
             self._consistency[key] = value
 
     def visit(self, node):
+        """
+        Visit current node and return its identification key if visitable.
+
+        If node is not visitable, return `None`.
+
+        """
         try:
             if id(node) in [id(x) for x in self.visited]:
                 # todo, if visited check the localkey and return it.
@@ -86,10 +106,11 @@ class BaseVisitor:
                 # or not correctly reported
                 return self._hash_cache.get(id(node))
             else:
+                # that seem to be wrong, we likely should put id(node) in that.
                 self.visited.append(node)
         except TypeError:
-            # non equalable things (eg dtype/moduel)
-            return
+            # non equalable things (eg dtype/modules)
+            return None
         mod = getattr(node, '__module__', None)
         if mod and not mod.startswith(self.name):
             self.rejected.append(node)
@@ -104,6 +125,6 @@ class BaseVisitor:
         else:
             type_ = type(node).__name__
         visitor = getattr(self, 'visit_' + type_, self.visit_unknown)
-        hashv = visitor(node)
-        self._hash_cache[id(node)] = hashv
-        return hashv
+        visited_hash = visitor(node)
+        self._hash_cache[id(node)] = visited_hash
+        return visited_hash

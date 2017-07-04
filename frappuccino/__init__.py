@@ -56,9 +56,6 @@ import json
 import sys
 import re
 
-from pprint import pprint
-
-
 from .visitor import BaseVisitor
 from .logging import logger
 
@@ -74,10 +71,11 @@ def hexuniformify(s: str)->str:
     return hexd.sub('0xffffff', s)
 
 
-### likely unused code used for testing at some point
+# likely unused code used for testing at some point
 
 def foo():
     pass
+
 
 def signature_from_text(text):
     loc = {}
@@ -96,10 +94,9 @@ def signature_from_text(text):
 ####
 
 
-
 def parameter_dump(p):
     """
-    Given a parameter (from inspect signature), dump ti to json
+    Given a parameter (from inspect signature), dump to to json
     """
     # TODO: mapping of kind  and drop default if inspect empty + annotations.
     return {'kind': str(p.kind),
@@ -114,7 +111,6 @@ def sig_dump(sig):
     return {k: parameter_dump(v) for k, v in sig.parameters.items()}
 
 
-
 def fully_qualified(obj: object) -> str:
     """
     (try to) return the fully qualified name of an object
@@ -125,9 +121,7 @@ def fully_qualified(obj: object) -> str:
         return '%s.%s' % (obj.__class__.__module__, obj.__class__.__name__)
 
 
-
 class Visitor(BaseVisitor):
-
 
     def visit_metaclass_instance(self, meta_instance):
         return self.visit_type(meta_instance)
@@ -139,21 +133,20 @@ class Visitor(BaseVisitor):
         self.logger.debug('Unknown: ========')
         self.logger.debug('Unknown: No clue what to do with %s', unknown)
         self.logger.debug('Unknown: isinstance(node, object) %s',
-                     isinstance(unknown, object))
+                          isinstance(unknown, object))
         self.logger.debug('Unknown: isinstance(node, type) %s',
-                     isinstance(unknown, type))
+                          isinstance(unknown, type))
         self.logger.debug('Unknown: type(node) %s', type(unknown))
         if type(unknown) is type:
             self.logger.debug('Unknown: issubclass(unknown, type) %s',
-                         issubclass(unknown, type))
+                              issubclass(unknown, type))
         self.logger.debug('Unknown: issubclass(type(unknown), type) %s %s',
-                     issubclass(type(unknown), type), type(unknown))
+                          issubclass(type(unknown), type), type(unknown))
         self.logger.debug('Unknown: type(unknown) is type :  %s',
-                     type(unknown) is type)
+                          type(unknown) is type)
         self.logger.debug('Unknown: hasattr(unknown, "__call__"):  %s',
-                     hasattr(unknown, "__call__"))
+                          hasattr(unknown, "__call__"))
         self.logger.debug('Unknown: ========')
-
 
     def visit_method_descriptor(self, meth):
         pass
@@ -179,20 +172,21 @@ class Visitor(BaseVisitor):
         self.logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
         self.spec[fullqual] = {
-            'type':'function',
+            'type': 'function',
             'signature': sig_dump(inspect.signature(function))}
         self._consistent(fullqual, function)
         return fullqual
 
     def visit_instance(self, instance):
         self.rejected.append(instance)
-        self.logger.debug('    vis instance %s', instance)
+        self.logger.debug('    visit_instance %s', instance)
         return str(instance)
 
     def visit_type(self, type_):
         local_key = type_.__module__ + '.' + type_.__qualname__
         items = {}
-        self.logger.debug('Class %s' % type_.__module__ + '.' + type_.__qualname__)
+        self.logger.debug('Class %s' % type_.__module__ +
+                          '.' + type_.__qualname__)
         for k in sorted(dir(type_)):
             if not k.startswith('_'):
                 items[k] = self.visit(getattr(type_, k))
@@ -212,10 +206,12 @@ class Visitor(BaseVisitor):
             return None
         for k in dir(module):
             if k.startswith('_') and not (k.startswith('__') and k.endswith('__')):
-                self.logger.debug('       skipping private attribute: %s.%s' % (module.__name__, k))
+                self.logger.debug(
+                    '     visit_module: skipping private attribute: %s.%s' % (module.__name__, k))
                 continue
             else:
-                self.logger.debug('       visiting public attribute; %s.%s' % (module.__name__, k))
+                self.logger.debug(
+                    '     visit_module: visiting public attribute; %s.%s' % (module.__name__, k))
                 self.visit(getattr(module, k))
 
 
@@ -238,7 +234,7 @@ def params_compare(old_ps, new_ps):
         ipdb.set_trace()
 
 
-def visit_modules(rootname:str, modules):
+def visit_modules(rootname: str, modules):
     """
     visit given modules and return a tree visitor that have visited the given modules.
 
@@ -259,19 +255,28 @@ def visit_modules(rootname:str, modules):
     tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
     skipped = []
     for module_name in modules:
-        try:
-            module = importlib.import_module(module_name)
-            tree_visitor.visit(module)
-        except (ImportError, RuntimeError, AttributeError) as e:
-            skipped.append(module_name)
+        # Here we allow also ModuleTypes for easy testing, figure out a clean
+        # way with stable types. Likely move the requirement to import things
+        # one more level up, then we can also remove the need for catching
+        # import,runtime and attribute errors and push it to the caller.
+        if isinstance(module_name, types.ModuleType):
+            module = module_name
+        else:
+            try:
+                module = importlib.import_module(module_name)
+            except (ImportError, RuntimeError, AttributeError) as e:
+                skipped.append(module_name)
+                continue
+        tree_visitor.visit(module)
 
     return skipped, tree_visitor
+
 
 def compare(old_spec, new_spec, *, tree_visitor):
     """
     Given an old_specification and a new_specification print differences.
 
-    Todo:  yield difference to not have side effects.
+    Todo:  yield better structured informations
 
     """
     old_keys = set(old_spec.keys())
@@ -288,6 +293,7 @@ def compare(old_spec, new_spec, *, tree_visitor):
         yield (removed_keys, )
         yield
 
+    # Todo, print that only if there are differences.
     yield ("The following signature differ between versions:", )
     for key in common_keys:
         # if isinstance(old_spec[key], str):
@@ -330,8 +336,10 @@ def main():
     parser = argparse.ArgumentParser('frappuccino')
     parser.add_argument('modules', metavar='modules', type=str,
                         nargs='+', help='root modules and submodules')
-    parser.add_argument('--save', action='store', help='file to dump API to', metavar='<file>')
-    parser.add_argument('--compare', action='store', help='file with dump API to compare to', metavar='<file>')
+    parser.add_argument('--save', action='store',
+                        help='file to dump API to', metavar='<file>')
+    parser.add_argument('--compare', action='store',
+                        help='file with dump API to compare to', metavar='<file>')
     parser.add_argument('--debug', action='store_true')
 
     options = parser.parse_args()
@@ -351,7 +359,7 @@ def main():
         print('skipped modules :', ','.join(skipped))
 
     print("Collected:", len(tree_visitor.collected),
-          "Visited:", len(tree_visitor.visited), 
+          "Visited:", len(tree_visitor.visited),
           "Rejected:", len(tree_visitor.rejected))
 
     if options.save:
