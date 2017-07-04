@@ -238,6 +238,92 @@ def params_compare(old_ps, new_ps):
         ipdb.set_trace()
 
 
+def visit_modules(rootname:str, modules):
+    """
+    visit given modules and return a tree visitor that have visited the given modules.
+
+    Will only recursively visit modules with fully qualified names starting with
+    `rootname`. It is possible to pass several modules to inspect as python does
+    not always expose submodules, as they need to be explicitly imported. For
+    example, `matplotlib` does not expose `matplotlib.finance`, so a user would need to do 
+
+    `visit_module('matplotlib', [matplotlib, matplotlib.finance]` after
+    explicitly having imported both.
+
+    Another example would be namespace packages.
+
+    This is not made to explore at one multiple top level modules. (Maybe we
+    should allow that for things that re-expose other projects but that's a
+    question for another time.
+    """
+    tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
+    skipped = []
+    for module_name in modules:
+        try:
+            module = importlib.import_module(module_name)
+            tree_visitor.visit(module)
+        except (ImportError, RuntimeError, AttributeError) as e:
+            skipped.append(module_name)
+
+    return skipped, tree_visitor
+
+def compare(old_spec, new_spec, *, tree_visitor):
+    """
+    Given an old_specification and a new_specification print differences.
+
+    Todo:  yield difference to not have side effects.
+
+    """
+    old_keys = set(old_spec.keys())
+    common_keys = new_spec.intersection(old_keys)
+    removed_keys = old_keys.difference(new_spec)
+    new_keys = new_spec.difference(old_keys)
+    if new_keys:
+        yield ("The following items are new, former aliases, or where present on superclass",)
+        yield (new_keys,)
+        yield
+    if removed_keys:
+        yield (
+            "The following canonical items have been removed, are now aliases or moved to super-class",)
+        yield (removed_keys, )
+        yield
+
+    yield ("The following signature differ between versions:", )
+    for key in common_keys:
+        # if isinstance(old_spec[key], str):
+        #     from_dump = hexuniformify(old_spec[key])
+        #     current_spec = hexuniformify(tree_visitor.spec[key])
+        # else:
+        from_dump = old_spec[key]
+        current_spec = tree_visitor.spec[key]
+
+        if from_dump != current_spec:
+
+            if current_spec['type'] == 'type':  # Classes / Module / Function
+                current_spec = current_spec['items']
+                from_dump = from_dump['items']
+                removed = [k for k in from_dump if k not in current_spec]
+                if not removed:
+                    continue
+                yield
+                yield ("Class/Module> %s" % (key),)
+                new = [k for k in current_spec if k not in from_dump]
+                if new:
+                    yield ('              new values are', new)
+                removed = [k for k in from_dump if k not in current_spec]
+                if removed:
+                    yield ('              removed values are', removed)
+            elif current_spec['type'] == 'function':
+                from_dump = from_dump['signature']
+                current_spec = current_spec['signature']
+                yield
+                yield ("function> %s" % (key),)
+                yield ("          %s" % (key),)
+                params_compare(from_dump, current_spec)
+            else:
+                yield ('unknown node:', current_spec)
+
+
 def main():
     import argparse
 
@@ -259,13 +345,10 @@ def main():
 
     rootname = options.modules[0]
     tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
-    for module_name in options.modules:
-        try:
-            module = importlib.import_module(module_name)
-            tree_visitor.visit(module)
-        except (ImportError, RuntimeError, AttributeError) as e:
-            print('skipping ...', module_name)
-            print(e)
+
+    skipped, tree_visitor = visit_modules(rootname, options.modules)
+    if skipped:
+        print('skipped modules :', ','.join(skipped))
 
     print("Collected:", len(tree_visitor.collected),
           "Visited:", len(tree_visitor.visited), 
@@ -278,56 +361,12 @@ def main():
         with open(options.compare, 'r') as f:
             loaded = json.loads(f.read())
 
-        lkeys = set(loaded.keys())
         skeys = set(tree_visitor.spec.keys())
-
-        common_keys = skeys.intersection(lkeys)
-        removed_keys = lkeys.difference(skeys)
-        new_keys = skeys.difference(lkeys)
-        if new_keys:
-            print(
-                "The following items are new, former aliases, or where present on superclass")
-            pprint(new_keys)
-            print()
-        if removed_keys:
-            print(
-                "The following canonical items have been removed, are now aliases or moved to super-class")
-            pprint(removed_keys)
-            print()
-
-        print("The following signature differ between versions:")
-        for key in common_keys:
-            if isinstance(loaded[key], str):
-                from_dump = hexuniformify(loaded[key])
-                current_spec = hexuniformify(tree_visitor.spec[key])
+        for c in compare(loaded, skeys, tree_visitor=tree_visitor):
+            if c is None:
+                print()
             else:
-                from_dump = loaded[key]
-                current_spec = tree_visitor.spec[key]
-
-            if from_dump != current_spec:
-
-                if current_spec['type'] == 'type':  # Classes / Module / Fucntion
-                    current_spec = current_spec['items']
-                    removed = [k for k in from_dump if k not in current_spec]
-                    if not removed:
-                        continue
-                    print()
-                    print("Class/Module> %s" % (key))
-                    new = [k for k in current_spec if k not in from_dump['items']]
-                    if new:
-                        print('              new values are', new)
-                    removed = [k for k in from_dump if k not in current_spec]
-                    if removed:
-                        print('              removed values are', removed)
-                elif current_spec['type'] == 'function':
-                    from_dump = from_dump['signature']
-                    current_spec = current_spec['signature']
-                    print()
-                    print("function> %s" % (key))
-                    print("          %s" % (key))
-                    params_compare(from_dump, current_spec)
-                else:
-                    print('unknown node:', current_spec)
+                print(*c)
 
 
 if __name__ == '__main__':
