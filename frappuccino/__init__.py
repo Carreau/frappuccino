@@ -136,23 +136,23 @@ class Visitor(BaseVisitor):
     def visit_unknown(self, unknown):
         self.rejected.append(unknown)
 
-        logger.debug('Unknown: ========')
-        logger.debug('Unknown: No clue what to do with %s', unknown)
-        logger.debug('Unknown: isinstance(node, object) %s',
+        self.logger.debug('Unknown: ========')
+        self.logger.debug('Unknown: No clue what to do with %s', unknown)
+        self.logger.debug('Unknown: isinstance(node, object) %s',
                      isinstance(unknown, object))
-        logger.debug('Unknown: isinstance(node, type) %s',
+        self.logger.debug('Unknown: isinstance(node, type) %s',
                      isinstance(unknown, type))
-        logger.debug('Unknown: type(node) %s', type(unknown))
+        self.logger.debug('Unknown: type(node) %s', type(unknown))
         if type(unknown) is type:
-            logger.debug('Unknown: issubclass(unknown, type) %s',
+            self.logger.debug('Unknown: issubclass(unknown, type) %s',
                          issubclass(unknown, type))
-        logger.debug('Unknown: issubclass(type(unknown), type) %s %s',
+        self.logger.debug('Unknown: issubclass(type(unknown), type) %s %s',
                      issubclass(type(unknown), type), type(unknown))
-        logger.debug('Unknown: type(unknown) is type :  %s',
+        self.logger.debug('Unknown: type(unknown) is type :  %s',
                      type(unknown) is type)
-        logger.debug('Unknown: hasattr(unknown, "__call__"):  %s',
+        self.logger.debug('Unknown: hasattr(unknown, "__call__"):  %s',
                      hasattr(unknown, "__call__"))
-        logger.debug('Unknown: ========')
+        self.logger.debug('Unknown: ========')
 
 
     def visit_method_descriptor(self, meth):
@@ -176,7 +176,7 @@ class Visitor(BaseVisitor):
         sig = hexuniformify(str(inspect.signature(function)))
         # except ValueError:
         #    return
-        logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
+        self.logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
         self.spec[fullqual] = {
             'type':'function',
@@ -186,13 +186,13 @@ class Visitor(BaseVisitor):
 
     def visit_instance(self, instance):
         self.rejected.append(instance)
-        logger.debug('    vis instance %s', instance)
-        pass
+        self.logger.debug('    vis instance %s', instance)
+        return str(instance)
 
     def visit_type(self, type_):
         local_key = type_.__module__ + '.' + type_.__qualname__
         items = {}
-        logger.debug('Class %s' % type_.__module__ + '.' + type_.__qualname__)
+        self.logger.debug('Class %s' % type_.__module__ + '.' + type_.__qualname__)
         for k in sorted(dir(type_)):
             if not k.startswith('_'):
                 items[k] = self.visit(getattr(type_, k))
@@ -205,17 +205,17 @@ class Visitor(BaseVisitor):
         return local_key
 
     def visit_module(self, module):
-        logger.debug('Module %s' % module)
+        self.logger.debug('Module %s' % module)
         if not module.__name__.startswith(self.name):
-            logger.debug('out of scope %s vs %s : %s' % (
+            self.logger.debug('out of scope %s vs %s : %s' % (
                 module.__name__, self.name, module.__name__.startswith(self.name)))
             return None
         for k in dir(module):
             if k.startswith('_') and not (k.startswith('__') and k.endswith('__')):
-                logger.debug('       skipping private attribute: %s.%s' % (module.__name__, k))
+                self.logger.debug('       skipping private attribute: %s.%s' % (module.__name__, k))
                 continue
             else:
-                logger.debug('       visiting public attribute; %s.%s' % (module.__name__, k))
+                self.logger.debug('       visiting public attribute; %s.%s' % (module.__name__, k))
                 self.visit(getattr(module, k))
 
 
@@ -258,7 +258,7 @@ def main():
         logger.setLevel('DEBUG')
 
     rootname = options.modules[0]
-    tree_visitor = Visitor(rootname.split('.')[0])
+    tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
     for module_name in options.modules:
         try:
             module = importlib.import_module(module_name)

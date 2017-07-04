@@ -4,7 +4,7 @@
 """
 
 from types import ModuleType
-from .logging import logger
+from .logging import logger as _logger
 
 
 class BaseVisitor:
@@ -14,9 +14,15 @@ class BaseVisitor:
     The generic `visit` method does return a predictable immutable hashable key
     for the given node in order to avoid potential cycles, and to re-compute
     information about a given node.
+
+    Subclass should define multiple methods named `visit_<type(object)>(self,
+    object)`, that should return predictable and stable keys for passed object.
+    The generic `visit` method will dispatch on the given `visit_*` method when
+    it visit a given type, and will fallback on `visit_unknown(self, obj)` if no
+    corresponding method is found.
     """
 
-    def __init__(self, name:str):
+    def __init__(self, name:str, *, logger=None):
         """
         
         Parameters
@@ -51,6 +57,11 @@ class BaseVisitor:
         # debug, make sure 2 objects are not getting the same key
         self._consistency = {}
 
+        if not logger:
+            self.logger = _logger
+        else:
+            self.logger = logger
+
     def _consistent(self, key, value):
         """
         If the current object we are visiting map to the same key and the same value.
@@ -62,7 +73,7 @@ class BaseVisitor:
         """
         if key in self._consistency:
             if self._consistency[key] is not value:
-                logger.info("Warning %s is not %s, results may not be consistent" % (
+                self.logger.info("Warning %s is not %s, results may not be consistent" % (
                     self._consistency[key], value))
         else:
             self._consistency[key] = value
