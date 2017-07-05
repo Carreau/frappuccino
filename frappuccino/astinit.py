@@ -93,12 +93,16 @@ class APIVisitor:
         if node.name.startswith('_'):
             return None
         args = node.args
-        return {node.name: {'type': node.__class__.__name__,
-                            'args': [a.arg for a in args.args],
-                            'kwonlyargs': [a.arg for a in args.kwonlyargs],
-                            'vararg': args.vararg.arg if args.vararg else [],
-                            'kwarg': args.kwarg.arg if args.kwarg else [],
-                            }}
+        return {
+            node.name:
+                {
+                    'type': node.__class__.__name__,
+                    'args': [a.arg for a in args.args],
+                    'kwonlyargs': [a.arg for a in args.kwonlyargs],
+                    'vararg': args.vararg.arg if args.vararg else [],
+                    'kwarg': args.kwarg.arg if args.kwarg else [],
+                }
+        }
 
     def visit_ClassDef(self, node):
         vis = self.generic_visit(node)
@@ -139,11 +143,13 @@ class DoubleTreeVisitor:
         return list(filter(None, res))
 
     def visit_ClassDef(self, old_class, new_class, name):
-        missing_attributes = set(old_class['attributes'].keys()).difference(
-            set(new_class['attributes'].keys()))
+        missing_attributes = set(old_class['attributes'].keys()
+                                 ).difference(set(new_class['attributes'].keys()))
         if missing_attributes:
-            print('Class `{}` has lost non deprecated and non private following attributes : {}'.format(
-                name, *missing_attributes))
+            print(
+                'Class `{}` has lost non deprecated and non private following attributes : {}'.
+                format(name, *missing_attributes)
+            )
 
         self.generic_visit(old_class, new_class)
 

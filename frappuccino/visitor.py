@@ -87,8 +87,10 @@ class BaseVisitor:
         """
         if key in self._consistency:
             if self._consistency[key] is not value:
-                self.logger.info("Warning %s is not %s, results may not be consistent" % (
-                    self._consistency[key], value))
+                self.logger.info(
+                    "Warning %s is not %s, results may not be consistent" %
+                    (self._consistency[key], value)
+                )
         else:
             self._consistency[key] = value
 
@@ -118,7 +120,8 @@ class BaseVisitor:
 
         if isinstance(node, ModuleType):
             type_ = 'module'
-        elif isinstance(node, object) and not isinstance(node, type) and not hasattr(node, '__call__'):
+        elif isinstance(node, object
+                        ) and not isinstance(node, type) and not hasattr(node, '__call__'):
             type_ = 'instance'
         elif issubclass(type(node), type) and type(node) is not type:
             type_ = 'metaclass_instance'

@@ -48,7 +48,6 @@ Frappuccino is there to help.
 
 __version__ = '0.0.1'
 
-
 import importlib
 import inspect
 import types
@@ -62,7 +61,7 @@ from .logging import logger
 hexd = re.compile('0x[0-9a-f]+')
 
 
-def hexuniformify(s: str)->str:
+def hexuniformify(s: str) -> str:
     """
     Uniforming hex addresses to `0xffffff` to avoid difference between rerun.
 
@@ -73,6 +72,7 @@ def hexuniformify(s: str)->str:
 
 # likely unused code used for testing at some point
 
+
 def foo():
     pass
 
@@ -81,8 +81,10 @@ def signature_from_text(text):
     loc = {}
     glob = {}
     try:
-        exec(compile('from typing import *\ndef function%s:pass' %
-                     text, '<fakefile>', 'exec'), glob, loc)
+        exec(
+            compile('from typing import *\ndef function%s:pass' % text, '<fakefile>', 'exec'), glob,
+            loc
+        )
         sig = inspect.signature(loc['function'])
     except Exception as e:
         print(' failed:>>> def function%s:pass' % text)
@@ -99,9 +101,7 @@ def parameter_dump(p):
     Given a parameter (from inspect signature), dump to to json
     """
     # TODO: mapping of kind  and drop default if inspect empty + annotations.
-    return {'kind': str(p.kind),
-            'name': p.name,
-            'default': hexuniformify(str(p.default))}
+    return {'kind': str(p.kind), 'name': p.name, 'default': hexuniformify(str(p.default))}
 
 
 def sig_dump(sig):
@@ -132,20 +132,19 @@ class Visitor(BaseVisitor):
 
         self.logger.debug('Unknown: ========')
         self.logger.debug('Unknown: No clue what to do with %s', unknown)
-        self.logger.debug('Unknown: isinstance(node, object) %s',
-                          isinstance(unknown, object))
-        self.logger.debug('Unknown: isinstance(node, type) %s',
-                          isinstance(unknown, type))
+        self.logger.debug('Unknown: isinstance(node, object) %s', isinstance(unknown, object))
+        self.logger.debug('Unknown: isinstance(node, type) %s', isinstance(unknown, type))
         self.logger.debug('Unknown: type(node) %s', type(unknown))
         if type(unknown) is type:
-            self.logger.debug('Unknown: issubclass(unknown, type) %s',
-                              issubclass(unknown, type))
-        self.logger.debug('Unknown: issubclass(type(unknown), type) %s %s',
-                          issubclass(type(unknown), type), type(unknown))
-        self.logger.debug('Unknown: type(unknown) is type :  %s',
-                          type(unknown) is type)
-        self.logger.debug('Unknown: hasattr(unknown, "__call__"):  %s',
-                          hasattr(unknown, "__call__"))
+            self.logger.debug('Unknown: issubclass(unknown, type) %s', issubclass(unknown, type))
+        self.logger.debug(
+            'Unknown: issubclass(type(unknown), type) %s %s',
+            issubclass(type(unknown), type), type(unknown)
+        )
+        self.logger.debug('Unknown: type(unknown) is type :  %s', type(unknown) is type)
+        self.logger.debug(
+            'Unknown: hasattr(unknown, "__call__"):  %s', hasattr(unknown, "__call__")
+        )
         self.logger.debug('Unknown: ========')
 
     def visit_method_descriptor(self, meth):
@@ -162,8 +161,7 @@ class Visitor(BaseVisitor):
         if isinstance(klass, types.FunctionType):
             name = function.__module__
         else:
-            name = '%s.%s' % (function.__class__.__module__,
-                              function.__class__.__name__)
+            name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = '{}.{}'.format(name, function.__qualname__)
         # try:
         sig = hexuniformify(str(inspect.signature(function)))
@@ -173,7 +171,8 @@ class Visitor(BaseVisitor):
         self.collected.add(fullqual)
         self.spec[fullqual] = {
             'type': 'function',
-            'signature': sig_dump(inspect.signature(function))}
+            'signature': sig_dump(inspect.signature(function))
+        }
         self._consistent(fullqual, function)
         return fullqual
 
@@ -185,33 +184,33 @@ class Visitor(BaseVisitor):
     def visit_type(self, type_):
         local_key = type_.__module__ + '.' + type_.__qualname__
         items = {}
-        self.logger.debug('Class %s' % type_.__module__ +
-                          '.' + type_.__qualname__)
+        self.logger.debug('Class %s' % type_.__module__ + '.' + type_.__qualname__)
         for k in sorted(dir(type_)):
             if not k.startswith('_'):
                 items[k] = self.visit(getattr(type_, k))
         items = {k: v for k, v in items.items() if v}
-        self.spec[local_key] = {
-            'type': 'type',
-            'items': items
-        }
+        self.spec[local_key] = {'type': 'type', 'items': items}
         self.collected.add(local_key)
         return local_key
 
     def visit_module(self, module):
         self.logger.debug('Module %s' % module)
         if not module.__name__.startswith(self.name):
-            self.logger.debug('out of scope %s vs %s : %s' % (
-                module.__name__, self.name, module.__name__.startswith(self.name)))
+            self.logger.debug(
+                'out of scope %s vs %s : %s' %
+                (module.__name__, self.name, module.__name__.startswith(self.name))
+            )
             return None
         for k in dir(module):
             if k.startswith('_') and not (k.startswith('__') and k.endswith('__')):
                 self.logger.debug(
-                    '     visit_module: skipping private attribute: %s.%s' % (module.__name__, k))
+                    '     visit_module: skipping private attribute: %s.%s' % (module.__name__, k)
+                )
                 continue
             else:
                 self.logger.debug(
-                    '     visit_module: visiting public attribute; %s.%s' % (module.__name__, k))
+                    '     visit_module: visiting public attribute; %s.%s' % (module.__name__, k)
+                )
                 self.visit(getattr(module, k))
 
 
@@ -284,12 +283,13 @@ def compare(old_spec, new_spec, *, tree_visitor):
     removed_keys = old_keys.difference(new_spec)
     new_keys = new_spec.difference(old_keys)
     if new_keys:
-        yield ("The following items are new, former aliases, or where present on superclass",)
-        yield (new_keys,)
+        yield ("The following items are new, former aliases, or where present on superclass", )
+        yield (new_keys, )
         yield
     if removed_keys:
         yield (
-            "The following canonical items have been removed, are now aliases or moved to super-class",)
+            "The following canonical items have been removed, are now aliases or moved to super-class",
+        )
         yield (removed_keys, )
         yield
 
@@ -312,7 +312,7 @@ def compare(old_spec, new_spec, *, tree_visitor):
                 if not removed:
                     continue
                 yield
-                yield ("Class/Module> %s" % (key),)
+                yield ("Class/Module> %s" % (key), )
                 new = [k for k in current_spec if k not in from_dump]
                 if new:
                     yield ('              new values are', new)
@@ -323,8 +323,8 @@ def compare(old_spec, new_spec, *, tree_visitor):
                 from_dump = from_dump['signature']
                 current_spec = current_spec['signature']
                 yield
-                yield ("function> %s" % (key),)
-                yield ("          %s" % (key),)
+                yield ("function> %s" % (key), )
+                yield ("          %s" % (key), )
                 params_compare(from_dump, current_spec)
             else:
                 yield ('unknown node:', current_spec)
@@ -332,15 +332,38 @@ def compare(old_spec, new_spec, *, tree_visitor):
 
 def main():
     import argparse
+    from textwrap import dedent
 
-    parser = argparse.ArgumentParser('frappuccino')
-    parser.add_argument('modules', metavar='modules', type=str,
-                        nargs='+', help='root modules and submodules')
-    parser.add_argument('--save', action='store',
-                        help='file to dump API to', metavar='<file>')
-    parser.add_argument('--compare', action='store',
-                        help='file with dump API to compare to', metavar='<file>')
+    parser = argparse.ArgumentParser(
+        description="""
+            An easy way to be confident you haven't broken API contract since a
+            previous version, or see what changes have been made.""",
+        epilog="""
+
+            Example:
+                                                                       
+                $ pip install 'ipython==5.1.0'
+                $ frappuccino IPython --save IPython-5.1.0.json
+
+                $ pip install 'ipython==6.0.0'
+
+                $ frappuccino IPython --compare IPython-5.1.0.json
+                                                                 
+                ... list of API changes found + non zero exit code if incompatible ...
+
+            """,
+        allow_abbrev=False
+    )
+    parser.add_argument(
+        'modules', metavar='modules', type=str, nargs='+', help='root modules and submodules'
+    )
+    parser.add_argument('--save', action='store', help='file to dump API to', metavar='<file>')
+    parser.add_argument(
+        '--compare', action='store', help='file with dump API to compare to', metavar='<file>'
+    )
     parser.add_argument('--debug', action='store_true')
+
+    # TODO add stdin/stdout options for spec.
 
     options = parser.parse_args()
 
@@ -358,9 +381,11 @@ def main():
     if skipped:
         print('skipped modules :', ','.join(skipped))
 
-    print("Collected:", len(tree_visitor.collected),
-          "Visited:", len(tree_visitor.visited),
-          "Rejected:", len(tree_visitor.rejected))
+    print(
+        "Collected:",
+        len(tree_visitor.collected), "Visited:",
+        len(tree_visitor.visited), "Rejected:", len(tree_visitor.rejected)
+    )
 
     if options.save:
         with open(options.save, 'w') as f:
