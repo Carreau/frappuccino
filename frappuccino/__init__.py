@@ -85,7 +85,15 @@ def sigfd(data):
     for v in data.values():
         v = copy(v)
         kind = getattr(Parameter, v.pop('kind'))
-        prms.append(Parameter(kind=kind, **v))
+        try:
+            if kind:
+                prms.append(Parameter(kind=kind, **v))
+            else:
+                prms.append(Parameter(**v))
+
+
+        except:
+            return "(<couldn't found signature>)"
     return Signature(prms)
 # sigfd(data)
 
@@ -281,6 +289,7 @@ def visit_modules(rootname: str, modules):
                 module = importlib.import_module(module_name)
             except (ImportError, RuntimeError, AttributeError) as e:
                 skipped.append(module_name)
+                raise
                 continue
         tree_visitor.visit(module)
 
@@ -300,7 +309,8 @@ def compare(old_spec, new_spec, *, tree_visitor):
     new_keys = new_spec.difference(old_keys)
     if new_keys:
         yield ("The following items are new:", )
-        for k in new_keys:
+        for k in sorted(new_keys):
+            print(''':::''',v)
             yield '    '+k,
         yield
     if removed_keys:
@@ -312,7 +322,7 @@ def compare(old_spec, new_spec, *, tree_visitor):
         yield
 
     # Todo, print that only if there are differences.
-    yield ("The following signature differ between versions:", )
+    yield ("The following signatures differ between versions:", )
     for key in common_keys:
         # if isinstance(old_spec[key], str):
         #     from_dump = hexuniformify(old_spec[key])
@@ -374,6 +384,10 @@ def main():
                                                                  
             ... list of API changes found + non zero exit code if incompatible ...
 
+            When submodules need to be explicitly crawled, list them explicitely:
+
+                 $ frappuccino astropy astropy.timeseries .... --options.
+
             """),
         allow_abbrev=False
     )
@@ -398,7 +412,7 @@ def main():
         logger.setLevel('DEBUG')
 
     rootname = options.modules[0]
-    tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
+    # tree_visitor = Visitor(rootname.split('.')[0], logger=logger)
 
     skipped, tree_visitor = visit_modules(rootname, options.modules)
     if skipped:
