@@ -75,6 +75,21 @@ def foo():
     pass
 
 
+def sigfd(data):
+    """
+    Try to convert a dump to a string human readable
+    """
+    from inspect import Parameter,Signature
+    from copy import copy
+    prms = []
+    for v in data.values():
+        v = copy(v)
+        kind = getattr(Parameter, v.pop('kind'))
+        prms.append(Parameter(kind=kind, **v))
+    return Signature(prms)
+# sigfd(data)
+
+
 def signature_from_text(text):
     loc = {}
     glob = {}
@@ -155,17 +170,17 @@ class Visitor(BaseVisitor):
         return self.visit_function(b)
 
     def visit_function(self, function):
-        klass = function.__class__
-        if isinstance(klass, types.FunctionType):
-            name = function.__module__
-        else:
-            name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
+        name = function.__module__
+        #else:
+        #    name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = '{}.{}'.format(name, function.__qualname__)
+        #if 'leading_empty_lines' in function.__qualname__:
+        #    raise ValueError(fullqual, function.__module__, type(function) )
         # try:
         sig = hexuniformify(str(inspect.signature(function)))
         # except ValueError:
         #    return
-        self.logger.debug('    {f}{s}'.format(f=fullqual, s=sig))
+        self.logger.debug('    visit_function {f}{s}'.format(f=fullqual, s=sig))
         self.collected.add(fullqual)
         self.spec[fullqual] = {
             'type': 'function',
@@ -177,7 +192,10 @@ class Visitor(BaseVisitor):
     def visit_instance(self, instance):
         self.rejected.append(instance)
         self.logger.debug('    visit_instance %s', instance)
-        return str(instance)
+        try:
+            return str(instance)
+        except:
+            pass
 
     def visit_type(self, type_):
         local_key = type_.__module__ + '.' + type_.__qualname__
@@ -281,13 +299,13 @@ def compare(old_spec, new_spec, *, tree_visitor):
     removed_keys = old_keys.difference(new_spec)
     new_keys = new_spec.difference(old_keys)
     if new_keys:
-        yield ("The following items are new, former aliases, or where present on superclass", )
+        yield ("The following items are new:", )
         for k in new_keys:
             yield '    '+k,
         yield
     if removed_keys:
         yield (
-            "The following canonical items have been removed, are now aliases or moved to super-class",
+            "The following items have been removed, (or moved to super-class)",
         )
         for k in removed_keys:
             yield ('    '+k,)
@@ -312,20 +330,23 @@ def compare(old_spec, new_spec, *, tree_visitor):
                 if not removed:
                     continue
                 yield
-                yield ("Class/Module> %s" % (key), )
+                yield ("    %s" % (key), )
                 new = [k for k in current_spec if k not in from_dump]
                 if new:
-                    yield ('              new values are', new)
+                    for n in new:
+                        yield ('              new:', n)
                 removed = [k for k in from_dump if k not in current_spec]
                 if removed:
-                    yield ('              removed values are', removed)
+                    for r in removed:
+                        yield ('              removed:', r)
             elif current_spec['type'] == 'function':
                 from_dump = from_dump['signature']
                 current_spec = current_spec['signature']
                 yield
-                yield ("function> %s" % (key), )
-                yield ("          %s" % (key), )
-                params_compare(from_dump, current_spec)
+                yield ("    %s" % (key), )
+                yield ("          - %s%s" % (key, sigfd(from_dump)), )
+                yield ("          + %s%s" % (key, sigfd(current_spec)), )
+                #params_compare(from_dump, current_spec)
             else:
                 yield ('unknown node:', current_spec)
 
@@ -333,12 +354,14 @@ def compare(old_spec, new_spec, *, tree_visitor):
 def main():
     import argparse
     from textwrap import dedent
+    from argparse import RawTextHelpFormatter
 
     parser = argparse.ArgumentParser(
-        description="""
+        description=dedent("""
             An easy way to be confident you haven't broken API contract since a
-            previous version, or see what changes have been made.""",
-        epilog="""
+            previous version, or see what changes have been made."""),
+        formatter_class=RawTextHelpFormatter,
+        epilog=dedent("""
 
             Example:
                                                                        
@@ -349,9 +372,9 @@ def main():
 
                 $ frappuccino IPython --compare IPython-5.1.0.json
                                                                  
-                ... list of API changes found + non zero exit code if incompatible ...
+            ... list of API changes found + non zero exit code if incompatible ...
 
-            """,
+            """),
         allow_abbrev=False
     )
     parser.add_argument(
