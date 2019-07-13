@@ -44,7 +44,7 @@ of this when working on dev branches, unit test may not catch all of that.
 Frappuccino is there to help.
 """
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 import importlib
 import inspect
@@ -331,7 +331,6 @@ def compare(old_spec, new_spec, *, tree_visitor):
     if new_keys:
         yield ("The following items are new:",)
         for k in sorted(new_keys):
-            print(""":::""", v)
             yield "    " + k,
         yield
     if removed_keys:
