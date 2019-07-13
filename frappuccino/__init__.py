@@ -2,8 +2,6 @@
 Frappuccino
 ===========
 
-> Yes there is only one N.
-
 Freeze your API.
 
 Frappucino allows you during development to make sure you haven't broken API. By
@@ -284,13 +282,15 @@ def compare(old_spec, new_spec, *, tree_visitor):
     new_keys = new_spec.difference(old_keys)
     if new_keys:
         yield ("The following items are new, former aliases, or where present on superclass", )
-        yield (new_keys, )
+        for k in new_keys:
+            yield '    '+k,
         yield
     if removed_keys:
         yield (
             "The following canonical items have been removed, are now aliases or moved to super-class",
         )
-        yield (removed_keys, )
+        for k in removed_keys:
+            yield ('    '+k,)
         yield
 
     # Todo, print that only if there are differences.
