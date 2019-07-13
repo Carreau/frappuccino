@@ -88,8 +88,8 @@ class BaseVisitor:
         if key in self._consistency:
             if self._consistency[key] is not value:
                 self.logger.info(
-                    "Warning %s is not %s, results may not be consistent" %
-                    (self._consistency[key], value)
+                    "Warning %s is not %s, results may not be consistent"
+                    % (self._consistency[key], value)
                 )
         else:
             self._consistency[key] = value
@@ -113,21 +113,24 @@ class BaseVisitor:
         except TypeError:
             # non equalable things (eg dtype/modules)
             return None
-        mod = getattr(node, '__module__', None)
+        mod = getattr(node, "__module__", None)
         if mod and not mod.startswith(self.name):
             self.rejected.append(node)
             return
 
         if isinstance(node, ModuleType):
-            type_ = 'module'
-        elif isinstance(node, object
-                        ) and not isinstance(node, type) and not hasattr(node, '__call__'):
-            type_ = 'instance'
+            type_ = "module"
+        elif (
+            isinstance(node, object)
+            and not isinstance(node, type)
+            and not hasattr(node, "__call__")
+        ):
+            type_ = "instance"
         elif issubclass(type(node), type) and type(node) is not type:
-            type_ = 'metaclass_instance'
+            type_ = "metaclass_instance"
         else:
             type_ = type(node).__name__
-        visitor = getattr(self, 'visit_' + type_, self.visit_unknown)
+        visitor = getattr(self, "visit_" + type_, self.visit_unknown)
         visited_hash = visitor(node)
         self._hash_cache[id(node)] = visited_hash
         return visited_hash

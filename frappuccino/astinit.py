@@ -69,7 +69,7 @@ class APIVisitor:
 
     def visit(self, node):
         """Visit a node."""
-        method = 'visit_' + node.__class__.__name__
+        method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node)
 
@@ -90,18 +90,17 @@ class APIVisitor:
         return list(filter(None, res))
 
     def visit_FunctionDef(self, node):
-        if node.name.startswith('_'):
+        if node.name.startswith("_"):
             return None
         args = node.args
         return {
-            node.name:
-                {
-                    'type': node.__class__.__name__,
-                    'args': [a.arg for a in args.args],
-                    'kwonlyargs': [a.arg for a in args.kwonlyargs],
-                    'vararg': args.vararg.arg if args.vararg else [],
-                    'kwarg': args.kwarg.arg if args.kwarg else [],
-                }
+            node.name: {
+                "type": node.__class__.__name__,
+                "args": [a.arg for a in args.args],
+                "kwonlyargs": [a.arg for a in args.kwonlyargs],
+                "vararg": args.vararg.arg if args.vararg else [],
+                "kwarg": args.kwarg.arg if args.kwarg else [],
+            }
         }
 
     def visit_ClassDef(self, node):
@@ -109,7 +108,7 @@ class APIVisitor:
         d = {}
         for item in vis:
             d.update(item)
-        return {node.name: {'type': node.__class__.__name__, 'attributes': d}}
+        return {node.name: {"type": node.__class__.__name__, "attributes": d}}
 
 
 def is_compatible(old_tree, new_tree):
@@ -126,7 +125,7 @@ class DoubleTreeVisitor:
         for old_node, new_node in zip(old_list, new_list):
             for k, v in old_node.items():
                 if k in new_node:
-                    method = 'visit_' + v['type']
+                    method = "visit_" + v["type"]
                     visitor = getattr(self, method, self.generic_visit)
                     visitor(v, new_node[k], k)
 
@@ -143,18 +142,20 @@ class DoubleTreeVisitor:
         return list(filter(None, res))
 
     def visit_ClassDef(self, old_class, new_class, name):
-        missing_attributes = set(old_class['attributes'].keys()
-                                 ).difference(set(new_class['attributes'].keys()))
+        missing_attributes = set(old_class["attributes"].keys()).difference(
+            set(new_class["attributes"].keys())
+        )
         if missing_attributes:
             print(
-                'Class `{}` has lost non deprecated and non private following attributes : {}'.
-                format(name, *missing_attributes)
+                "Class `{}` has lost non deprecated and non private following attributes : {}".format(
+                    name, *missing_attributes
+                )
             )
 
         self.generic_visit(old_class, new_class)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     tree = ast.parse(test1)
     serialized_tree = APIVisitor().visit(tree)
 
