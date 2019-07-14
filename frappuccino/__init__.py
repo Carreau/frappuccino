@@ -76,7 +76,7 @@ def hexuniformify(s: str) -> str:
     return hexd.sub("0xffffff", s)
 
 
-def sigfd(data):
+def format_signature_from_dump(data):
     """
     Try to convert a dump to a string human readable
     """
@@ -348,8 +348,16 @@ def compare(old_spec, *, spec):
                 current_spec = current_spec["signature"]
                 yield
                 yield ("    %s" % (key),)
-                yield ("          - {}{}".format(key, sigfd(from_dump)),)
-                yield ("          + {}{}".format(key, sigfd(current_spec)),)
+                yield (
+                    "          - {}{}".format(
+                        key, format_signature_from_dump(from_dump)
+                    ),
+                )
+                yield (
+                    "          + {}{}".format(
+                        key, format_signature_from_dump(current_spec)
+                    ),
+                )
                 # params_compare(from_dump, current_spec)
             else:
                 yield ("unknown node:", current_spec)
