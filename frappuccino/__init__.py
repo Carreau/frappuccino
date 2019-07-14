@@ -81,7 +81,7 @@ def sigfd(data):
     Try to convert a dump to a string human readable
     """
     prms = []
-    for v in data.values():
+    for k,v in data:
         v = copy(v)
         default = v.pop("default")
         kind = getattr(Parameter, v.pop("kind"))
@@ -117,7 +117,7 @@ def sig_dump(sig):
     """
     Given a signature (from inspect signature), dump ti to json
     """
-    return {k: parameter_dump(v) for k, v in sig.parameters.items()}
+    return [[k, parameter_dump(v)] for k, v in sig.parameters.items()]
 
 
 def fully_qualified(obj: object) -> str:
