@@ -81,7 +81,7 @@ def sigfd(data):
     Try to convert a dump to a string human readable
     """
     prms = []
-    for k,v in data:
+    for k, v in data:
         v = copy(v)
         default = v.pop("default")
         kind = getattr(Parameter, v.pop("kind"))
@@ -364,7 +364,8 @@ def main():
         ),
         formatter_class=RawTextHelpFormatter,
         epilog=dedent(
-            """
+            f"""
+            Frappuccino version {__version__}
 
             Example:
 
@@ -389,11 +390,14 @@ def main():
         "modules",
         metavar="modules",
         type=str,
-        nargs="+",
+        nargs="*",
         help="root modules and submodules",
     )
     parser.add_argument(
         "--save", action="store", help="file to dump API to", metavar="<file>"
+    )
+    parser.add_argument(
+        "--version", action="store_true", help="print version number on exit."
     )
     parser.add_argument(
         "--compare",
@@ -407,12 +411,19 @@ def main():
 
     options = parser.parse_args()
 
+    if options.version:
+        print(__version__)
+        sys.exit(0)
+
     if options.save and options.compare:
         parser.print_help()
         sys.exit("options `--save` and `--compare` are exclusive")
 
     if options.debug:
         logger.setLevel("DEBUG")
+
+    if not options.modules:
+        sys.exit("Pass at least one module name")
 
     rootname = options.modules[0]
     # tree_visitor = Visitor(rootname.split('.')[0], logger=logger)

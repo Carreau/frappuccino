@@ -148,9 +148,7 @@ class DoubleTreeVisitor:
         if missing_attributes:
             print(
                 "Class `{}` has lost non deprecated and non private "
-                "following attributes : {}".format(
-                    name, *missing_attributes
-                )
+                "following attributes : {}".format(name, *missing_attributes)
             )
 
         self.generic_visit(old_class, new_class)
