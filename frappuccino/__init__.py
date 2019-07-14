@@ -46,6 +46,9 @@ Frappuccino is there to help.
 
 __version__ = "0.0.4"
 
+from inspect import Parameter, Signature
+from copy import copy
+
 import importlib
 import inspect
 import types
@@ -68,58 +71,27 @@ def hexuniformify(s: str) -> str:
     return hexd.sub("0xffffff", s)
 
 
-# likely unused code used for testing at some point
-
-
-def foo():
-    pass
-
-
 def sigfd(data):
     """
     Try to convert a dump to a string human readable
     """
-    from inspect import Parameter, Signature
-    from copy import copy
-
     prms = []
     for v in data.values():
         v = copy(v)
+        default = v.pop("default")
         kind = getattr(Parameter, v.pop("kind"))
+        name = v.pop("name")
+        annotation = v.get("annotation", inspect._empty)
+        if default == "<class 'inspect._empty'>":
+            default = inspect._empty
+        if annotation == "<class 'inspect._empty'>":
+            annotation = inspect._empty
         try:
-            if kind:
-                prms.append(Parameter(kind=kind, **v))
-            else:
-                prms.append(Parameter(**v))
-
+            prms.append(Parameter(name=name, default=default, annotation=annotation, kind=kind))
         except:
-            return "(<couldn't found signature>)"
+            return "(<couldn't compute signature>)"
     return Signature(prms)
 
-
-# sigfd(data)
-
-
-def signature_from_text(text):
-    loc = {}
-    glob = {}
-    try:
-        exec(
-            compile(
-                "from typing import *\ndef function%s:pass" % text, "<fakefile>", "exec"
-            ),
-            glob,
-            loc,
-        )
-        sig = inspect.signature(loc["function"])
-    except Exception as e:
-        print(" failed:>>> def function%s:pass" % text)
-        return inspect.signature(foo)
-        raise
-    return sig
-
-
-####
 
 
 def parameter_dump(p):
@@ -131,6 +103,7 @@ def parameter_dump(p):
         "kind": str(p.kind),
         "name": p.name,
         "default": hexuniformify(str(p.default)),
+        "annotation" : str(p.annotation)
     }
 
 
@@ -154,7 +127,6 @@ def fully_qualified(obj: object) -> str:
 class Visitor(BaseVisitor):
     def visit_metaclass_instance(self, meta_instance):
         return self.visit_type(meta_instance)
-        pass
 
     def visit_unknown(self, unknown):
         self.rejected.append(unknown)
@@ -184,25 +156,25 @@ class Visitor(BaseVisitor):
         self.logger.debug("Unknown: ========")
 
     def visit_method_descriptor(self, meth):
-        pass
+        self.logger.debug('Unimplemented, visiting_meth_descriptor', meth)
 
-    def visit_builtin_function_or_method(self, b):
-        pass
+    def visit_builtin_function_or_method(self, bltin):
+        print('Uninplemented, visit_builtin_function_or_method', bltin)
+        try:
+            return self.visit_function(bltin)
+        except ValueError:
+            name = 'Yooo.%s' % bltin.__qualname__
+            self.spec[name] = '----'
+            return name
+        #    return "(no sig for builtin)"
 
     def visit_method(self, b):
         return self.visit_function(b)
 
     def visit_function(self, function):
         name = function.__module__
-        # else:
-        #    name = '%s.%s' % (function.__class__.__module__, function.__class__.__name__)
         fullqual = "{}.{}".format(name, function.__qualname__)
-        # if 'leading_empty_lines' in function.__qualname__:
-        #    raise ValueError(fullqual, function.__module__, type(function) )
-        # try:
         sig = hexuniformify(str(inspect.signature(function)))
-        # except ValueError:
-        #    return
         self.logger.debug("    visit_function {f}{s}".format(f=fullqual, s=sig))
         self.collected.add(fullqual)
         self.spec[fullqual] = {
@@ -218,6 +190,7 @@ class Visitor(BaseVisitor):
         try:
             return str(instance)
         except:
+            print('error in visit instance stringifying')
             pass
 
     def visit_type(self, type_):
@@ -374,7 +347,7 @@ def compare(old_spec, new_spec, *, tree_visitor):
                 yield ("    %s" % (key),)
                 yield ("          - %s%s" % (key, sigfd(from_dump)),)
                 yield ("          + %s%s" % (key, sigfd(current_spec)),)
-                # params_compare(from_dump, current_spec)
+                #params_compare(from_dump, current_spec)
             else:
                 yield ("unknown node:", current_spec)
 
