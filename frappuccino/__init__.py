@@ -44,7 +44,7 @@ of this when working on dev branches, unit test may not catch all of that.
 Frappuccino is there to help.
 """
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 from inspect import Parameter, Signature
 from copy import copy
