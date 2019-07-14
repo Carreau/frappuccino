@@ -31,7 +31,8 @@ def read(name_or_buffer, *, options=None):
 ```
 
 There is a subtle breakage of API in the above, as you may not remember
-positional parameters can be use a keyword arguments. That is to say one of your customer may use:
+positional parameters can be use a keyword arguments. That is to say one of
+your customer may use:
 
 ```python
 read(name='dump.csv')
@@ -94,7 +95,7 @@ def sigfd(data):
             prms.append(
                 Parameter(name=name, default=default, annotation=annotation, kind=kind)
             )
-        except:
+        except Exception:
             return "(<couldn't compute signature>)"
     return Signature(prms)
 
@@ -194,7 +195,7 @@ class Visitor(BaseVisitor):
         self.logger.debug("    visit_instance %s", instance)
         try:
             return str(instance)
-        except:
+        except Exception:
             print("error in visit instance stringifying")
 
     def visit_type(self, type_):
@@ -249,7 +250,7 @@ def params_compare(old_ps, new_ps):
             if o == n and ov == nv:
                 continue
             param_compare(ov, nv)
-    except:
+    except Exception:
         import ipdb
 
         ipdb.set_trace()
@@ -262,7 +263,8 @@ def visit_modules(rootname: str, modules):
     Will only recursively visit modules with fully qualified names starting with
     `rootname`. It is possible to pass several modules to inspect as python does
     not always expose submodules, as they need to be explicitly imported. For
-    example, `matplotlib` does not expose `matplotlib.finance`, so a user would need to do 
+    example, `matplotlib` does not expose `matplotlib.finance`, so a user would
+    need to do
 
     `visit_module('matplotlib', [matplotlib, matplotlib.finance]` after
     explicitly having imported both.
@@ -285,7 +287,7 @@ def visit_modules(rootname: str, modules):
         else:
             try:
                 module = importlib.import_module(module_name)
-            except (ImportError, RuntimeError, AttributeError) as e:
+            except (ImportError, RuntimeError, AttributeError):
                 skipped.append(module_name)
                 raise
                 continue
@@ -301,7 +303,7 @@ def compare(old_spec, *, spec):
     Todo:  yield better structured informations
 
     """
-    new_spec = skeys = set(spec.keys())
+    new_spec = set(spec.keys())
     old_keys = set(old_spec.keys())
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
@@ -365,14 +367,14 @@ def main():
             """
 
             Example:
-                                                                       
+
                 $ pip install 'ipython==5.1.0'
                 $ frappuccino IPython --save IPython-5.1.0.json
 
                 $ pip install 'ipython==6.0.0'
 
                 $ frappuccino IPython --compare IPython-5.1.0.json
-                                                                 
+
             ... list of API changes found + non zero exit code if incompatible ...
 
             When submodules need to be explicitly crawled, list them explicitely:
@@ -434,7 +436,6 @@ def main():
         with open(options.compare, "r") as f:
             loaded = json.loads(f.read())
 
-        skeys = set(tree_visitor.spec.keys())
         for c in compare(loaded, spec=tree_visitor.spec):
             if c is None:
                 print()

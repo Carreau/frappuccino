@@ -117,7 +117,7 @@ def is_compatible(old_tree, new_tree):
 
 class DoubleTreeVisitor:
     """
-    Like AstVisitor, but compare two tree for compatibility. 
+    Like AstVisitor, but compare two tree for compatibility.
     """
 
     def visit(self, old_list, new_list, name=None):
@@ -147,7 +147,8 @@ class DoubleTreeVisitor:
         )
         if missing_attributes:
             print(
-                "Class `{}` has lost non deprecated and non private following attributes : {}".format(
+                "Class `{}` has lost non deprecated and non private "
+                "following attributes : {}".format(
                     name, *missing_attributes
                 )
             )

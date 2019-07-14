@@ -3,7 +3,7 @@ from frappuccino.tests import new
 
 import json
 
-from frappuccino import main, visit_modules, compare
+from frappuccino import visit_modules, compare
 
 
 def fix_spec(spec, old: str, new: str):
@@ -20,12 +20,13 @@ def test_old_new():
     old_spec = fix_spec(old_spec_visitor.spec, "frappuccino.tests.old", "tests")
     new_spec = fix_spec(new_spec_visitor.spec, "frappuccino.tests.new", "tests")
 
-    l = list(compare(old_spec, spec=new_spec))
-    assert json.dumps(old_spec) is not "{}"
-    assert l == [
+    actual = list(compare(old_spec, spec=new_spec))
+    assert json.dumps(old_spec) != "{}"
+    expected = [
         ("The following signatures differ between versions:",),
         None,
         ("    tests.changed",),
         ("          - tests.changed(a, b, c)",),
         ("          + tests.changed(x, b, c)",),
     ]
+    assert actual == expected
