@@ -15,7 +15,7 @@ install:
   - pip install pytest coverage codecov flake8
 
 script:
-  - coverage run -m pytest
+  - coverage run --source=frappuccino -m pytest
   - coverage report -m
   - codecov
   - flake8
