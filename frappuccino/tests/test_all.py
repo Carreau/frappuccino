@@ -1,9 +1,9 @@
-from . import old
-from . import new
+from frappuccino.tests import old
+from frappuccino.tests import new
 
 import json
 
-from .. import main, visit_modules, compare
+from frappuccino import main, visit_modules, compare
 
 
 def test_old_new():
