@@ -122,9 +122,7 @@ class BaseVisitor:
         if isinstance(node, ModuleType):
             type_ = "module"
         elif (
-            isinstance(node, object)
-            and not isinstance(node, type)
-            and not is_callable
+            isinstance(node, object) and not isinstance(node, type) and not is_callable
         ):
             type_ = "instance"
         elif issubclass(type(node), type) and type(node) is not type:

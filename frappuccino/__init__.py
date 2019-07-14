@@ -87,11 +87,12 @@ def sigfd(data):
         if annotation == "<class 'inspect._empty'>":
             annotation = inspect._empty
         try:
-            prms.append(Parameter(name=name, default=default, annotation=annotation, kind=kind))
+            prms.append(
+                Parameter(name=name, default=default, annotation=annotation, kind=kind)
+            )
         except:
             return "(<couldn't compute signature>)"
     return Signature(prms)
-
 
 
 def parameter_dump(p):
@@ -103,7 +104,7 @@ def parameter_dump(p):
         "kind": str(p.kind),
         "name": p.name,
         "default": hexuniformify(str(p.default)),
-        "annotation" : str(p.annotation)
+        "annotation": str(p.annotation),
     }
 
 
@@ -119,9 +120,9 @@ def fully_qualified(obj: object) -> str:
     (try to) return the fully qualified name of an object
     """
     if obj is types.FunctionType:  # noqa
-        return "%s.%s" % (obj.__module__, obj.__qualname__)
+        return "{}.{}".format(obj.__module__, obj.__qualname__)
     else:
-        return "%s.%s" % (obj.__class__.__module__, obj.__class__.__name__)
+        return "{}.{}".format(obj.__class__.__module__, obj.__class__.__name__)
 
 
 class Visitor(BaseVisitor):
@@ -156,15 +157,15 @@ class Visitor(BaseVisitor):
         self.logger.debug("Unknown: ========")
 
     def visit_method_descriptor(self, meth):
-        self.logger.debug('Unimplemented, visiting_meth_descriptor', meth)
+        self.logger.debug("Unimplemented, visiting_meth_descriptor", meth)
 
     def visit_builtin_function_or_method(self, bltin):
-        print('Uninplemented, visit_builtin_function_or_method', bltin)
+        print("Uninplemented, visit_builtin_function_or_method", bltin)
         try:
             return self.visit_function(bltin)
         except ValueError:
-            name = 'Yooo.%s' % bltin.__qualname__
-            self.spec[name] = '----'
+            name = "Yooo.%s" % bltin.__qualname__
+            self.spec[name] = "----"
             return name
         #    return "(no sig for builtin)"
 
@@ -190,7 +191,7 @@ class Visitor(BaseVisitor):
         try:
             return str(instance)
         except:
-            print('error in visit instance stringifying')
+            print("error in visit instance stringifying")
             pass
 
     def visit_type(self, type_):
@@ -345,9 +346,9 @@ def compare(old_spec, new_spec, *, tree_visitor):
                 current_spec = current_spec["signature"]
                 yield
                 yield ("    %s" % (key),)
-                yield ("          - %s%s" % (key, sigfd(from_dump)),)
-                yield ("          + %s%s" % (key, sigfd(current_spec)),)
-                #params_compare(from_dump, current_spec)
+                yield ("          - {}{}".format(key, sigfd(from_dump)),)
+                yield ("          + {}{}".format(key, sigfd(current_spec)),)
+                # params_compare(from_dump, current_spec)
             else:
                 yield ("unknown node:", current_spec)
 
