@@ -28,5 +28,9 @@ def test_old_new():
         ("    tests.changed",),
         ("          - tests.changed(a, b, c)",),
         ("          + tests.changed(x, b, c)",),
+        None,
+        ("    tests.other",),
+        ("          - tests.other(a, b, c)",),
+        ("          + tests.other(x, b, c)",),
     ]
-    assert actual == expected
+    assert expected == actual
