@@ -25,6 +25,12 @@ def test_old_new():
     expected = [
         ("The following signatures differ between versions:",),
         None,
+        ("    tests.Example",),
+        ("              new:", "x"),
+        ("              new:", "y"),
+        ("              removed:", "a"),
+        ("              removed:", "b"),
+        None,
         ("    tests.changed",),
         ("          - tests.changed(a, b, c)",),
         ("          + tests.changed(x, b, c)",),

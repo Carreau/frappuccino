@@ -337,15 +337,15 @@ def compare(old_spec, *, spec):
                 yield
                 yield ("    %s" % (key),)
                 new = [k for k in current_spec_item if k not in from_dump]
-                assert len(new) <= 1
                 if new:
                     for n in new:
                         yield ("              new:", n)
+                        changed_keys.append([key, None, n])
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
                         yield ("              removed:", r)
-                changed_keys.append([])
+                        changed_keys.append([key, r, None])
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
                 current_spec_item = current_spec["signature"]
@@ -362,6 +362,7 @@ def compare(old_spec, *, spec):
                     ),
                 )
                 # params_compare(from_dump, current_spec_item)
+                changed_keys.append([])
             else:
                 yield ("unknown node:", current_spec)
 

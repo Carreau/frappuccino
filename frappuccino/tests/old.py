@@ -11,4 +11,7 @@ def other(a, b, c):
 
 
 class Example:
+    a = 1
+    b = 1
+    c = 1
     pass
