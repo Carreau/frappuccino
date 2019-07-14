@@ -329,26 +329,26 @@ def compare(old_spec, *, spec):
         if from_dump != current_spec:
 
             if current_spec["type"] == "type":  # Classes / Module / Function
-                current_spec = current_spec["items"]
+                current_spec_item = current_spec["items"]
                 from_dump = from_dump["items"]
-                removed = [k for k in from_dump if k not in current_spec]
+                removed = [k for k in from_dump if k not in current_spec_item]
                 if not removed:
                     continue
                 yield
                 yield ("    %s" % (key),)
-                new = [k for k in current_spec if k not in from_dump]
+                new = [k for k in current_spec_item if k not in from_dump]
                 assert len(new) <= 1
                 if new:
                     for n in new:
                         yield ("              new:", n)
-                removed = [k for k in from_dump if k not in current_spec]
+                removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
                         yield ("              removed:", r)
                 changed_keys.append([])
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
-                current_spec = current_spec["signature"]
+                current_spec_item = current_spec["signature"]
                 yield
                 yield ("    %s" % (key),)
                 yield (
@@ -358,10 +358,10 @@ def compare(old_spec, *, spec):
                 )
                 yield (
                     "          + {}{}".format(
-                        key, format_signature_from_dump(current_spec)
+                        key, format_signature_from_dump(current_spec_item)
                     ),
                 )
-                # params_compare(from_dump, current_spec)
+                # params_compare(from_dump, current_spec_item)
             else:
                 yield ("unknown node:", current_spec)
 
