@@ -1,0 +1,16 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "frappuccino"
+author = "Matthias Bussonnier"
+author-email = "bussonniermatthias@gmail.com"
+home-page = "https://github.com/Carreau/frappuccino"
+classifiers = ["License :: OSI Approved :: BSD License"]
+requires-python = ">=3.5"
+description-file="readme.md"
+
+
+[tool.flit.scripts]
+frappuccino = "frappuccino:main"
