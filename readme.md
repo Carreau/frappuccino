@@ -15,7 +15,7 @@ Example:
 ```python
 # old function
 def read(name, *, options=None):
-    with open(name. 'rb') as f:
+    with open(name, 'rb') as f:
         return process(data)
 
 # new function
