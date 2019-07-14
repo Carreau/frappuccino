@@ -47,9 +47,13 @@ Frappuccino is there to help.
 __version__ = "0.0.5"
 
 from inspect import Parameter, Signature
+from textwrap import dedent
+from argparse import RawTextHelpFormatter
 from copy import copy
 
+
 import importlib
+import argparse
 import inspect
 import types
 import json
@@ -192,7 +196,6 @@ class Visitor(BaseVisitor):
             return str(instance)
         except:
             print("error in visit instance stringifying")
-            pass
 
     def visit_type(self, type_):
         local_key = type_.__module__ + "." + type_.__qualname__
@@ -354,10 +357,6 @@ def compare(old_spec, new_spec, *, tree_visitor):
 
 
 def main():
-    import argparse
-    from textwrap import dedent
-    from argparse import RawTextHelpFormatter
-
     parser = argparse.ArgumentParser(
         description=dedent(
             """
@@ -423,14 +422,13 @@ def main():
     if skipped:
         print("skipped modules :", ",".join(skipped))
 
+    print("Collected (Object founds):", len(tree_visitor.collected))
+    print("Visited (don't start with _, not in stdlib...):", len(tree_visitor.visited))
     print(
-        "Collected:",
-        len(tree_visitor.collected),
-        "Visited:",
-        len(tree_visitor.visited),
-        "Rejected:",
+        "Rejected (Unknown nodes, or instances, don't know what to do with those):",
         len(tree_visitor.rejected),
     )
+    print()
 
     if options.save:
         with open(options.save, "w") as f:
