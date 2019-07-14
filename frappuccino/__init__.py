@@ -294,13 +294,14 @@ def visit_modules(rootname: str, modules):
     return skipped, tree_visitor
 
 
-def compare(old_spec, new_spec, *, tree_visitor):
+def compare(old_spec, *, spec):
     """
     Given an old_specification and a new_specification print differences.
 
     Todo:  yield better structured informations
 
     """
+    new_spec = skeys = set(spec.keys())
     old_keys = set(old_spec.keys())
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
@@ -319,12 +320,8 @@ def compare(old_spec, new_spec, *, tree_visitor):
     # Todo, print that only if there are differences.
     yield ("The following signatures differ between versions:",)
     for key in common_keys:
-        # if isinstance(old_spec[key], str):
-        #     from_dump = hexuniformify(old_spec[key])
-        #     current_spec = hexuniformify(tree_visitor.spec[key])
-        # else:
         from_dump = old_spec[key]
-        current_spec = tree_visitor.spec[key]
+        current_spec = spec[key]
 
         if from_dump != current_spec:
 
@@ -438,7 +435,7 @@ def main():
             loaded = json.loads(f.read())
 
         skeys = set(tree_visitor.spec.keys())
-        for c in compare(loaded, skeys, tree_visitor=tree_visitor):
+        for c in compare(loaded, spec=tree_visitor.spec):
             if c is None:
                 print()
             else:
