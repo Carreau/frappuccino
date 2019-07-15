@@ -233,7 +233,13 @@ class Visitor(BaseVisitor):
                     "     visit_module: visiting public attribute; %s.%s"
                     % (module.__name__, k)
                 )
-                self.visit(getattr(module, k))
+                try:
+                    mod = getattr(module, k)
+                except ImportError:
+                    pass
+                    # maybe reject ?
+
+                self.visit(mod)
 
 
 def param_compare(old, new):
