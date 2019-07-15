@@ -274,7 +274,7 @@ def visit_modules(rootname: str, modules):
 
     Another example would be namespace packages.
 
-    This is not made to explore at one multiple top level modules. (Maybe we
+    This is not made to explore multiple top level modules. (Maybe we
     should allow that for things that re-expose other projects but that's a
     question for another time.
     """

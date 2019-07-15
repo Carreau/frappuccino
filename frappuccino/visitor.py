@@ -44,8 +44,6 @@ class BaseVisitor:
         logger: Logger
             Logger instance to use to print debug messages.
 
-
-
         """
 
         self.name = name
@@ -111,6 +109,7 @@ class BaseVisitor:
                 # that seem to be wrong, we likely should put id(node) in that.
                 self.visited.append(node)
         except TypeError:
+            raise
             # non equalable things (eg dtype/modules)
             return None
         mod = getattr(node, "__module__", None)
