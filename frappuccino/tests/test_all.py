@@ -1,5 +1,6 @@
 from frappuccino.tests import old
 from frappuccino.tests import new
+from inspect import signature
 
 import json
 
@@ -23,20 +24,23 @@ def test_old_new():
     actual = list(compare(old_spec, spec=new_spec))
     assert json.dumps(old_spec) != "{}"
     expected = [
-        ("The following signatures differ between versions:",),
-        None,
-        ("    tests.Example",),
-        ("              new:", "x"),
-        ("              new:", "y"),
-        ("              removed:", "a"),
-        ("              removed:", "b"),
-        None,
-        ("    tests.changed",),
-        ("          - tests.changed(a, b, c)",),
-        ("          + tests.changed(x, b, c)",),
-        None,
-        ("    tests.other",),
-        ("          - tests.other(a, b, c)",),
-        ("          + tests.other(x, b, c)",),
+        set(),
+        set(),
+        [
+            ["tests.Example", None, "x"],
+            ["tests.Example", None, "y"],
+            ["tests.Example", "a", None],
+            ["tests.Example", "b", None],
+            [
+                "tests.changed",
+                signature(lambda a, b, c: None),
+                signature(lambda x, b, c: None),
+            ],
+            [
+                "tests.other",
+                signature(lambda a, b, c: None),
+                signature(lambda x, b, c: None),
+            ],
+        ],
     ]
     assert expected == actual

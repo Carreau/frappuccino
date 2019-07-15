@@ -105,12 +105,15 @@ def parameter_dump(p):
     Given a parameter (from inspect signature), dump to to json
     """
     # TODO: mapping of kind  and drop default if inspect empty + annotations.
-    return {
+    # TODO: default: handle boolean and integer correctly
+    data = {
         "kind": str(p.kind),
         "name": p.name,
         "default": hexuniformify(str(p.default)),
-        "annotation": str(p.annotation),
     }
+    if p.annotation is not inspect._empty:
+        data["annotation"]: str(p.annotation)
+    return data
 
 
 def sig_dump(sig):
@@ -237,23 +240,23 @@ def param_compare(old, new):
     if old is None:
         print("     New paramters", repr(new))
         return
-    print("    ", old, "!=", new)
+    print(">>    ", old, "!=", new)
+    for k in ["name", "kind", "default", "annotation"]:
+        o, n = old.get(k, inspect._empty), new.get(k, inspect._empty)
+        if o != n:
+            print(">>", k, o, n)
 
 
 def params_compare(old_ps, new_ps):
     try:
         from itertools import zip_longest
 
-        for (o, ov), (n, nv) in zip_longest(
-            old_ps.items(), new_ps.items(), fillvalue=(None, None)
-        ):
+        for (o, ov), (n, nv) in zip_longest(old_ps, new_ps, fillvalue=(None, None)):
             if o == n and ov == nv:
                 continue
             param_compare(ov, nv)
     except Exception:
-        import ipdb
-
-        ipdb.set_trace()
+        raise
 
 
 def visit_modules(rootname: str, modules):
@@ -308,19 +311,8 @@ def compare(old_spec, *, spec):
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
     new_keys = new_spec.difference(old_keys)
-    if new_keys:
-        yield ("The following items are new:",)
-        for k in sorted(new_keys):
-            yield "    " + k,
-        yield
-    if removed_keys:
-        yield ("The following items have been removed, (or moved to super-class)",)
-        for k in removed_keys:
-            yield ("    " + k,)
-        yield
 
     # Todo, print that only if there are differences.
-    yield ("The following signatures differ between versions:",)
     changed_keys = []
     for key in sorted(common_keys):
         from_dump = old_spec[key]
@@ -334,37 +326,26 @@ def compare(old_spec, *, spec):
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if not removed:
                     continue
-                yield
-                yield ("    %s" % (key),)
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
-                        yield ("              new:", n)
                         changed_keys.append([key, None, n])
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
-                        yield ("              removed:", r)
                         changed_keys.append([key, r, None])
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
                 current_spec_item = current_spec["signature"]
-                yield
-                yield ("    %s" % (key),)
-                yield (
-                    "          - {}{}".format(
-                        key, format_signature_from_dump(from_dump)
-                    ),
+                changed_keys.append(
+                    [
+                        key,
+                        format_signature_from_dump(from_dump),
+                        format_signature_from_dump(current_spec_item),
+                    ]
                 )
-                yield (
-                    "          + {}{}".format(
-                        key, format_signature_from_dump(current_spec_item)
-                    ),
-                )
-                # params_compare(from_dump, current_spec_item)
-                changed_keys.append([])
             else:
-                yield ("unknown node:", current_spec)
+                raise ValueError
 
     return new_keys, removed_keys, changed_keys
 
@@ -429,10 +410,6 @@ def main():
         print(__version__)
         sys.exit(0)
 
-    if options.save and options.compare:
-        parser.print_help()
-        sys.exit("options `--save` and `--compare` are exclusive")
-
     if options.debug:
         logger.setLevel("DEBUG")
 
@@ -460,12 +437,23 @@ def main():
     if options.compare:
         with open(options.compare, "r") as f:
             loaded = json.loads(f.read())
-
-        for c in compare(loaded, spec=tree_visitor.spec):
-            if c is None:
+        new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
+        if new_keys:
+            print('"The following items are new:"')
+            for n in new_keys:
+                print("    +", n)
+            print()
+        if removed_keys:
+            print('"The following items have been removed (or moved to superclass):"')
+            for o in removed_keys:
+                print("    -", o)
+            print()
+        if changed_keys:
+            print("The following signatures differ between versions:")
+            for k, o, n in changed_keys:
                 print()
-            else:
-                print(*c)
+                print(f"    - {k}{o}")
+                print(f"    + {k}{n}")
 
 
 if __name__ == "__main__":
