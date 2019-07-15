@@ -70,5 +70,5 @@ The following signatures differ between versions:
 # Other example 
 
 ```
-cp frappuccino/tests/old.py frappuccino/t.py ; frappuccino frappuccino.t --save t.json; cp frappuccino/tests/new.py frappuccino/t.py; frappuccino frappuccino.t --compare t.json
+cp frappuccino/tests/old.py frappuccino/t.py ; frappuccino frappuccino.t --save t.json; sleep 2;  cp frappuccino/tests/new.py frappuccino/t.py; frappuccino frappuccino.t --compare t.json
 ```
