@@ -421,8 +421,6 @@ def main():
         with conffile.open() as f:
             conf = pytoml.load(f)
         conf = conf.get("tool", {}).get("frappuccino", {})
-    print(conf)
-    sys.exit()
 
     if options.version:
         print(__version__)
