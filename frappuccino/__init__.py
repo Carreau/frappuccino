@@ -50,6 +50,7 @@ __version__ = "0.0.5"
 from inspect import Parameter, Signature
 from textwrap import dedent
 from argparse import RawTextHelpFormatter
+from pathlib import Path
 from copy import copy
 
 
@@ -60,6 +61,8 @@ import types
 import json
 import sys
 import re
+
+import pytoml
 
 from .visitor import BaseVisitor
 from .logging import logger
@@ -411,6 +414,15 @@ def main():
     # TODO add stdin/stdout options for spec.
 
     options = parser.parse_args()
+
+    conffile = Path('pyproject.toml')
+    conf = {}
+    if conffile.exists():
+        with conffile.open() as f:
+             conf = pytoml.load(f)
+        conf = conf.get('tool',{}).get('frappuccino',{})
+    print(conf)
+    sys.exit()
 
     if options.version:
         print(__version__)

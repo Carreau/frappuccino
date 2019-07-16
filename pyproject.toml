@@ -10,7 +10,11 @@ home-page = "https://github.com/Carreau/frappuccino"
 classifiers = ["License :: OSI Approved :: BSD License"]
 requires-python = ">=3.6"
 description-file="readme.md"
+requires=["pytoml"]
 
 
 [tool.flit.scripts]
 frappuccino = "frappuccino:main"
+
+[tool.frappuccino.configuration]
+modules=["astropy"]

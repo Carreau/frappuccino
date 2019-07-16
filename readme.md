@@ -54,17 +54,14 @@ $ frappuccino astropy astropy.timeseries --compare astropy.json
 
 The following signatures differ between versions:
 
-    astropy.time.core.TimeDelta.to
-          - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
-          + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
+      - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
+      + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
 
-    astropy.table.table.Table.add_column
-          - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
-          + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
+      - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
+      + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
 
-    astropy.table.table.Table.replace_column
-          - astropy.table.table.Table.replace_column(self, name, col)
-          + astropy.table.table.Table.replace_column(self, name, col, copy='True')
+      - astropy.table.table.Table.replace_column(self, name, col)
+      + astropy.table.table.Table.replace_column(self, name, col, copy='True')
 ```
 
 # Other example 
