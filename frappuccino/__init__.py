@@ -415,12 +415,12 @@ def main():
 
     options = parser.parse_args()
 
-    conffile = Path('pyproject.toml')
+    conffile = Path("pyproject.toml")
     conf = {}
     if conffile.exists():
         with conffile.open() as f:
-             conf = pytoml.load(f)
-        conf = conf.get('tool',{}).get('frappuccino',{})
+            conf = pytoml.load(f)
+        conf = conf.get("tool", {}).get("frappuccino", {})
     print(conf)
     sys.exit()
 
