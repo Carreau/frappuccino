@@ -66,7 +66,7 @@ import re
 
 import pytoml
 
-from .visitor import Visitor, hexuniformify
+from .visitor import Visitor, hexuniformify, sig_dump
 from .logging import logger
 
 
@@ -100,18 +100,63 @@ def deserialize_spec(compact_spec):
     expanded_spec = dict()
     for type_, container in compact_spec.items():
         for k, v in container.items():
-            expanded_spec[k] = v
+            if type_ == 'function':
+                if isinstance(v, str):
+                    d = {}
+                    exec(f"def f{v}:pass", d)
+                    sig = sig_dump(inspect.signature(d['f']))
+                else:
+                    sig = v
+                expanded_spec[k]={'signature':sig}
+            else:
+                expanded_spec[k] = v
+
             expanded_spec[k]["type"] = type_
     return expanded_spec
 
 
 def serialize_spec(expanded_spec):
+    """Serialise an API spec.
+
+    1) swap key order:
+        from [{type:...}, {type:...}, {type:...}]
+        to {'function': [{...}], 'module':[...]}
+    highly decrease redundancy on disk and make it more human friendly.
+
+
+    """
     compact_spec = defaultdict(lambda: {})
     for key, value in expanded_spec.items():
         type_ = value["type"]
         store = {k:v for k,v in value.items() if k != 'type'}
+        if type_ == 'function':
+            store = _serialise_function_signature(store['signature'])
         compact_spec[type_][key] = store
     return json.dumps(compact_spec, indent=2)
+
+def _serialise_function_signature(function_signature):
+    """
+    For _some_ signature, we can serialise it in a more human readable for.
+
+    In particular if there are no Pos-Onlyarguments, we can dump-it use normal python syntax.
+    Which we can parse back.
+    """
+    ps = []
+    for argname,parameter_info in function_signature:
+        if parameter_info['kind'] == 'POSITIONAL_ONLY':
+            return function_signature
+        parameter_info = copy(parameter_info)
+        default = parameter_info.pop("default")
+        kind = getattr(Parameter, parameter_info.pop("kind"))
+        name = parameter_info.pop("name")
+        annotation = parameter_info.get("annotation", inspect._empty)
+        if default == "<class 'inspect._empty'>":
+            default = inspect._empty
+        if annotation == "<class 'inspect._empty'>":
+            annotation = inspect._empty
+        ps.append(Parameter(name=name, default=default, annotation=annotation, kind=kind))
+    return str(Signature(ps))
+
 
 
 def param_compare(old, new):

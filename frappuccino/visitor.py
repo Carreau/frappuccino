@@ -31,12 +31,14 @@ def parameter_dump(p):
     """
     Given a parameter (from inspect signature), dump to to json
     """
-    # TODO: mapping of kind  and drop default if inspect empty + annotations.
-    # TODO: default: handle boolean and integer correctly
+    if isinstance(p.default, (int, float, bool)):
+        default = p.default
+    else:
+        default = hexuniformify(str(p.default))
     data = {
         "kind": str(p.kind),
         "name": p.name,
-        "default": hexuniformify(str(p.default)),
+        "default" : default,
     }
     if p.annotation is not inspect._empty:
         data["annotation"]: str(p.annotation)
