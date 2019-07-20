@@ -246,9 +246,6 @@ def compare(old_spec, *, spec):
             if current_spec["type"] == "type":  # Classes / Module / Function
                 current_spec_item = current_spec["items"]
                 from_dump = from_dump["items"]
-                removed = [k for k in from_dump if k not in current_spec_item]
-                if not removed:
-                    continue
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
@@ -374,12 +371,12 @@ def main():
 
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
-            print('"The following items are new:"')
+            print('The following items are new:')
             for n in new_keys:
                 print("    +", n)
             print()
         if removed_keys:
-            print('"The following items have been removed (or moved to superclass):"')
+            print('The following items have been removed (or moved to superclass):')
             for o in removed_keys:
                 print("    -", o)
             print()
