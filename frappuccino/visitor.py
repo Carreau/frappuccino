@@ -225,6 +225,8 @@ class Visitor(BaseVisitor):
             raise ValueError(function)
         self.spec[fullqual] = {
             "type": "function",
+            ## we don't store sign here as they would not be
+            ## deep-copyable.
             "signature": sig_dump(inspect.signature(function)),
         }
         self._consistent(fullqual, function)

@@ -54,7 +54,6 @@ from pathlib import Path
 from copy import copy
 
 
-from copy import deepcopy
 from collections import defaultdict
 
 import importlib
@@ -91,12 +90,13 @@ def format_signature_from_dump(data):
                 Parameter(name=name, default=default, annotation=annotation, kind=kind)
             )
         except Exception:
+            raise
             return "(<couldn't compute signature>)"
     return Signature(prms)
 
 
-def expand_spec(compact_spec):
-    compact_spec = deepcopy(compact_spec)
+def deserialize_spec(compact_spec):
+    compact_spec = json.loads(compact_spec)
     expanded_spec = dict()
     for type_, container in compact_spec.items():
         for k, v in container.items():
@@ -105,14 +105,13 @@ def expand_spec(compact_spec):
     return expanded_spec
 
 
-def compact_spec(expanded_spec):
-    expanded_spec = deepcopy(expanded_spec)
+def serialize_spec(expanded_spec):
     compact_spec = defaultdict(lambda: {})
-    for k, v in expanded_spec.items():
-        type_ = v["type"]
-        del v["type"]
-        compact_spec[type_][k] = v
-    return compact_spec
+    for key, value in expanded_spec.items():
+        type_ = value["type"]
+        store = {k:v for k,v in value.items() if k != 'type'}
+        compact_spec[type_][key] = store
+    return json.dumps(compact_spec, indent=2)
 
 
 def param_compare(old, new):
@@ -319,10 +318,15 @@ def main():
 
     if options.save:
         with open(options.save, "w") as f:
-            f.write(json.dumps(compact_spec(tree_visitor.spec), indent=2))
+            f.write(serialize_spec(tree_visitor.spec))
     if options.compare:
         with open(options.compare, "r") as f:
-            loaded = expand_spec(json.loads(f.read()))
+            loaded = deserialize_spec(f.read())
+
+        # round trip for testing, and make a deepcopy
+        spec = deserialize_spec(serialize_spec(tree_visitor.spec))
+        assert spec == tree_visitor.spec
+
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
             print('"The following items are new:"')
