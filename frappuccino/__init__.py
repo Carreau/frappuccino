@@ -135,6 +135,28 @@ def fully_qualified(obj: object) -> str:
     else:
         return "{}.{}".format(obj.__class__.__module__, obj.__class__.__name__)
 
+from copy import deepcopy
+from collections import defaultdict
+
+def expand_spec(compact_spec):
+    compact_spec = deepcopy(compact_spec)
+    expanded_spec = dict()
+    for type_,container in compact_spec.items():
+        for k,v in container.items():
+            expanded_spec[k] = v
+            expanded_spec[k]['type'] = type_
+    return expanded_spec
+
+def compact_spec(expanded_spec):
+    expanded_spec = deepcopy(expanded_spec)
+    compact_spec = defaultdict(lambda :{})
+    for k,v in expanded_spec.items():
+        type_ = v['type']
+        del v['type']
+        compact_spec[type_][k] = v
+    return compact_spec
+        
+
 
 class Visitor(BaseVisitor):
     def visit_metaclass_instance(self, meta_instance):
@@ -449,10 +471,10 @@ def main():
 
     if options.save:
         with open(options.save, "w") as f:
-            f.write(json.dumps(tree_visitor.spec, indent=2))
+            f.write(json.dumps(compact_spec(tree_visitor.spec), indent=2))
     if options.compare:
         with open(options.compare, "r") as f:
-            loaded = json.loads(f.read())
+            loaded = expand_spec(json.loads(f.read()))
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
             print('"The following items are new:"')
