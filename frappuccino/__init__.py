@@ -193,24 +193,22 @@ class Visitor(BaseVisitor):
         self.logger.debug("Unimplemented, visiting_meth_descriptor", meth)
 
     def visit_builtin_function_or_method(self, bltin):
-        print("Uninplemented, visit_builtin_function_or_method", bltin)
-        try:
-            return self.visit_function(bltin)
-        except ValueError:
-            name = "Yooo.%s" % bltin.__qualname__
-            self.spec[name] = "----"
-            return name
-        #    return "(no sig for builtin)"
+        return self.visit_function(bltin)
 
     def visit_method(self, b):
         return self.visit_function(b)
 
     def visit_function(self, function):
         name = function.__module__
+        if name is None:
+            name = 'BUILTIN'
         fullqual = "{}.{}".format(name, function.__qualname__)
         sig = hexuniformify(str(inspect.signature(function)))
         self.logger.debug("    visit_function {f}{s}".format(f=fullqual, s=sig))
         self.collected.add(fullqual)
+        if fullqual.startswith('None.'):
+            import pdb; pdb.set_trace()
+            raise ValueError(function)
         self.spec[fullqual] = {
             "type": "function",
             "signature": sig_dump(inspect.signature(function)),
@@ -227,16 +225,16 @@ class Visitor(BaseVisitor):
             print("error in visit instance stringifying")
 
     def visit_type(self, type_):
-        local_key = type_.__module__ + "." + type_.__qualname__
+        fullqual = type_.__module__ + "." + type_.__qualname__
         items = {}
         self.logger.debug("Class %s" % type_.__module__ + "." + type_.__qualname__)
         for k in sorted(dir(type_)):
             if not k.startswith("_"):
                 items[k] = self.visit(getattr(type_, k))
         items = {k: v for k, v in items.items() if v}
-        self.spec[local_key] = {"type": "type", "items": items}
-        self.collected.add(local_key)
-        return local_key
+        self.spec[fullqual] = {"type": "type", "items": items}
+        self.collected.add(fullqual)
+        return fullqual
 
     def visit_module(self, module):
         self.logger.debug("Module %s" % module)
