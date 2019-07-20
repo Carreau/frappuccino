@@ -5,6 +5,42 @@
 
 from types import ModuleType
 from .logging import logger as _logger
+import inspect
+import re
+
+hexd = re.compile("0x[0-9a-f]+")
+
+
+def hexuniformify(s: str) -> str:
+    """
+    Uniforming hex addresses to `0xffffff` to avoid difference between rerun.
+
+    Difference  may be due to object id varying in reprs.
+    """
+    return hexd.sub("0xffffff", s)
+
+
+def sig_dump(sig):
+    """
+    Given a signature (from inspect signature), dump ti to json
+    """
+    return [[k, parameter_dump(v)] for k, v in sig.parameters.items()]
+
+
+def parameter_dump(p):
+    """
+    Given a parameter (from inspect signature), dump to to json
+    """
+    # TODO: mapping of kind  and drop default if inspect empty + annotations.
+    # TODO: default: handle boolean and integer correctly
+    data = {
+        "kind": str(p.kind),
+        "name": p.name,
+        "default": hexuniformify(str(p.default)),
+    }
+    if p.annotation is not inspect._empty:
+        data["annotation"]: str(p.annotation)
+    return data
 
 
 class BaseVisitor:
@@ -132,3 +168,112 @@ class BaseVisitor:
         visited_hash = visitor(node)
         self._hash_cache[id(node)] = visited_hash
         return visited_hash
+
+
+class Visitor(BaseVisitor):
+    def visit_metaclass_instance(self, meta_instance):
+        return self.visit_type(meta_instance)
+
+    def visit_unknown(self, unknown):
+        self.rejected.append(unknown)
+
+        self.logger.debug("Unknown: ========")
+        self.logger.debug("Unknown: No clue what to do with %s", unknown)
+        self.logger.debug(
+            "Unknown: isinstance(node, object) %s", isinstance(unknown, object)
+        )
+        self.logger.debug(
+            "Unknown: isinstance(node, type) %s", isinstance(unknown, type)
+        )
+        self.logger.debug("Unknown: type(node) %s", type(unknown))
+        if type(unknown) is type:
+            self.logger.debug(
+                "Unknown: issubclass(unknown, type) %s", issubclass(unknown, type)
+            )
+        self.logger.debug(
+            "Unknown: issubclass(type(unknown), type) %s %s",
+            issubclass(type(unknown), type),
+            type(unknown),
+        )
+        self.logger.debug("Unknown: type(unknown) is type :  %s", type(unknown) is type)
+        self.logger.debug(
+            'Unknown: hasattr(unknown, "__call__"):  %s', hasattr(unknown, "__call__")
+        )
+        self.logger.debug("Unknown: ========")
+
+    def visit_method_descriptor(self, meth):
+        self.logger.debug("Unimplemented, visiting_meth_descriptor", meth)
+
+    def visit_builtin_function_or_method(self, bltin):
+        return self.visit_function(bltin)
+
+    def visit_method(self, b):
+        return self.visit_function(b)
+
+    def visit_function(self, function):
+        name = function.__module__
+        if name is None:
+            name = "BUILTIN"
+        fullqual = "{}.{}".format(name, function.__qualname__)
+        sig = hexuniformify(str(inspect.signature(function)))
+        self.logger.debug("    visit_function {f}{s}".format(f=fullqual, s=sig))
+        self.collected.add(fullqual)
+        if fullqual.startswith("None."):
+            import pdb
+
+            pdb.set_trace()
+            raise ValueError(function)
+        self.spec[fullqual] = {
+            "type": "function",
+            "signature": sig_dump(inspect.signature(function)),
+        }
+        self._consistent(fullqual, function)
+        return fullqual
+
+    def visit_instance(self, instance):
+        self.rejected.append(instance)
+        self.logger.debug("    visit_instance %s", instance)
+        try:
+            return str(instance)
+        except Exception:
+            print("error in visit instance stringifying")
+
+    def visit_type(self, type_):
+        fullqual = type_.__module__ + "." + type_.__qualname__
+        items = {}
+        self.logger.debug("Class %s" % type_.__module__ + "." + type_.__qualname__)
+        for k in sorted(dir(type_)):
+            if not k.startswith("_"):
+                items[k] = self.visit(getattr(type_, k))
+        items = {k: v for k, v in items.items() if v}
+        self.spec[fullqual] = {"type": "type", "items": items}
+        self.collected.add(fullqual)
+        return fullqual
+
+    def visit_module(self, module):
+        self.logger.debug("Module %s" % module)
+        if not module.__name__.startswith(self.name):
+            self.logger.debug(
+                "out of scope %s vs %s : %s"
+                % (module.__name__, self.name, module.__name__.startswith(self.name))
+            )
+            return None
+        for k in dir(module):
+            if k.startswith("_") and not (k.startswith("__") and k.endswith("__")):
+                self.logger.debug(
+                    "     visit_module: skipping private attribute: %s.%s"
+                    % (module.__name__, k)
+                )
+                continue
+            else:
+                self.logger.debug(
+                    "     visit_module: visiting public attribute; %s.%s"
+                    % (module.__name__, k)
+                )
+                try:
+                    mod = getattr(module, k)
+                except ImportError:
+                    pass
+                    # maybe reject ?
+
+                self.visit(mod)
