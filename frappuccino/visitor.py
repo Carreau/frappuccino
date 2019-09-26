@@ -207,7 +207,10 @@ class Visitor(BaseVisitor):
         self.logger.debug("Unimplemented, visiting_meth_descriptor", meth)
 
     def visit_builtin_function_or_method(self, bltin):
-        return self.visit_function(bltin)
+        try:
+            return self.visit_function(bltin)
+        except ValueError:
+            return 
 
     def visit_method(self, b):
         return self.visit_function(b)
@@ -217,8 +220,13 @@ class Visitor(BaseVisitor):
         if name is None:
             name = "BUILTIN"
         fullqual = "{}.{}".format(name, function.__qualname__)
+
+        ##
         sig = hexuniformify(str(inspect.signature(function)))
         self.logger.debug("    visit_function {f}{s}".format(f=fullqual, s=sig))
+        ##
+
+        
         self.collected.add(fullqual)
         if fullqual.startswith("None."):
             import pdb

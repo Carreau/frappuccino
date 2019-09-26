@@ -45,7 +45,7 @@ of this when working on dev branches, unit test may not catch all of that.
 Frappuccino is there to help.
 """
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 from inspect import Parameter, Signature
 from textwrap import dedent
@@ -102,9 +102,12 @@ def deserialize_spec(compact_spec):
         for k, v in container.items():
             if type_ == 'function':
                 if isinstance(v, str):
-                    d = {}
-                    exec(f"def f{v}:pass", d)
-                    sig = sig_dump(inspect.signature(d['f']))
+                    d = {'inf':float('inf')}
+                    try:
+                        exec(f"def f{v}:pass", d)
+                        sig = sig_dump(inspect.signature(d['f']))
+                    except:
+                        print('V is ', repr(v))
                 else:
                     sig = v
                 expanded_spec[k]={'signature':sig}
@@ -233,7 +236,7 @@ def compare(old_spec, *, spec):
     old_keys = set(old_spec.keys())
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
-    new_keys = new_spec.difference(old_keys)
+    _new_keys = new_spec.difference(old_keys)
 
     # Todo, print that only if there are differences.
     changed_keys = []
@@ -266,6 +269,13 @@ def compare(old_spec, *, spec):
                 )
             else:
                 raise ValueError
+    new_keys = []
+    for k in _new_keys:
+        current_spec = spec[k]
+        if current_spec['type'] == 'function':
+            new_keys.append([k, str(format_signature_from_dump(current_spec['signature']))])
+        else:
+            new_keys.append([k, ''])
 
     return new_keys, removed_keys, changed_keys
 
@@ -373,7 +383,7 @@ def main():
         if new_keys:
             print('The following items are new:')
             for n in new_keys:
-                print("    +", n)
+                print("    +", n[0]+n[1])
             print()
         if removed_keys:
             print('The following items have been removed (or moved to superclass):')
