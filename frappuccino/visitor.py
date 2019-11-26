@@ -284,6 +284,7 @@ class Visitor(BaseVisitor):
                 )
                 try:
                     mod = getattr(module, k)
+                    self.spec[f'{module.__name__}.{k}'] = {'type':'module_item'}
                 except ImportError:
                     pass
                     # maybe reject ?
