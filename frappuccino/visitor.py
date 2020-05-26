@@ -38,7 +38,7 @@ def parameter_dump(p):
     data = {
         "kind": str(p.kind),
         "name": p.name,
-        "default" : default,
+        "default": default,
     }
     if p.annotation is not inspect._empty:
         data["annotation"]: str(p.annotation)
@@ -210,7 +210,7 @@ class Visitor(BaseVisitor):
         try:
             return self.visit_function(bltin)
         except ValueError:
-            return 
+            return
 
     def visit_method(self, b):
         return self.visit_function(b)
@@ -226,7 +226,6 @@ class Visitor(BaseVisitor):
         self.logger.debug("    visit_function {f}{s}".format(f=fullqual, s=sig))
         ##
 
-        
         self.collected.add(fullqual)
         if fullqual.startswith("None."):
             import pdb

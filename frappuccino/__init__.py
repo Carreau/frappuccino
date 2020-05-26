@@ -224,6 +224,11 @@ def visit_modules(rootname: str, modules):
     return skipped, tree_visitor
 
 
+def _sorted_list(it):
+
+    return list(sorted(it, key=str))
+
+
 def compare(old_spec, *, spec):
     """
     Given an old_specification and a new_specification print differences.
@@ -251,13 +256,11 @@ def compare(old_spec, *, spec):
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
-                        # changed_keys.append([key, None, n])
-                        _new_keys.add(key)
+                        changed_keys.append([key, None, n])
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
-                        # changed_keys.append([key, r, None])
-                        old_keys.add(key)
+                        changed_keys.append([key, r, None])
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
                 current_spec_item = current_spec["signature"]
@@ -280,7 +283,11 @@ def compare(old_spec, *, spec):
         else:
             new_keys.append([k, ""])
 
-    return new_keys, removed_keys, changed_keys
+    return (
+        _sorted_list(new_keys),
+        _sorted_list(removed_keys),
+        _sorted_list(changed_keys),
+    )
 
 
 def main():
@@ -385,20 +392,45 @@ def main():
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
             print("The following items are new:")
-            for n in sorted(new_keys):
+            for n in new_keys:
                 print("    +", n[0] + n[1])
             print()
         if removed_keys:
             print("The following items have been removed (or moved to superclass):")
-            for o in sorted(removed_keys):
+            for o in removed_keys:
                 print("    -", o)
             print()
         if changed_keys:
             print("The following signatures differ between versions:")
             for k, o, n in changed_keys:
+                if n is None or o is None:
+                    continue
                 print()
                 print(f"    - {k}{o}")
                 print(f"    + {k}{n}")
+
+            print()
+            print("The following attribute seem new, but we are not too sure,")
+            print(
+                "(They might be new inherited attributes, or stuff we don't handle yet)"
+            )
+            print()
+            for k, o, n in changed_keys:
+                if o is not None or f"{k}.(n)" in new_keys:
+                    continue
+
+                print(f"    + {k}.{n}")
+
+            print()
+            print("The following attribute seem to have been removed:")
+            print(
+                "(They might have been inherited attributes, or stuff we didn't handle then)"
+            )
+            print()
+            for k, o, n in changed_keys:
+                if n is not None or f"{k}.{o}" in removed_keys:
+                    continue
+                print(f"    - {k}.{o}")
 
 
 if __name__ == "__main__":

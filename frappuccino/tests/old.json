@@ -1,0 +1,16 @@
+{
+  "type": {
+    "old.Example": {
+      "items": {
+        "a": "1",
+        "b": "1",
+        "c": "1"
+      }
+    }
+  },
+  "function": {
+    "old.changed": "(a, b, c)",
+    "old.other": "(a, b, c)",
+    "old.unchanged": "(a, b=1, *, c=2)"
+  }
+}

@@ -24,13 +24,13 @@ def test_old_new():
     actual = list(compare(old_spec, spec=new_spec))
     assert json.dumps(old_spec) != "{}"
     expected = [
-        set(),
-        set(),
+        [],
+        [],
         [
-            ["tests.Example", None, "x"],
-            ["tests.Example", None, "y"],
             ["tests.Example", "a", None],
             ["tests.Example", "b", None],
+            ["tests.Example", None, "x"],
+            ["tests.Example", None, "y"],
             [
                 "tests.changed",
                 signature(lambda a, b, c: None),
