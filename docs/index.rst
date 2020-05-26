@@ -79,37 +79,44 @@ For a developer install::
    flit install --symlink
 
 
-   
-
-
 How to use
 ----------
 
 
-```
-$ source activate astropy==3.2
-$ frappuccino astropy astropy.timeseries --save    astropy.json
+Using frappuccino is pretty straitforward:
 
-$ source activate astropy=master
-$ frappuccino astropy astropy.timeseries --compare astropy.json
+   - make sure the previous version of your project library is importable. 
+   - run ``frappuccino <import name> --save  somename.json``
+   - make sure the new version of your project library is importable, and run
+     with the ``--compare`` flag ``frappuccino <import name> --compare  somename.json``
 
-The following signatures differ between versions:
+For example::
 
-      - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
-      + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
+    $ source activate astropy==3.2
+    $ frappuccino astropy astropy.timeseries --save    astropy.json
 
-      - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
-      + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
+    $ source activate astropy=master
+    $ frappuccino astropy astropy.timeseries --compare astropy.json
 
-      - astropy.table.table.Table.replace_column(self, name, col)
-      + astropy.table.table.Table.replace_column(self, name, col, copy='True')
-```
+    The following signatures differ between versions:
 
-# Other example 
+        - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
+        + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
 
-```
-cp frappuccino/tests/old.py frappuccino/t.py ; frappuccino frappuccino.t --save t.json; sleep 2;  cp frappuccino/tests/new.py frappuccino/t.py; frappuccino frappuccino.t --compare t.json
-```
+        - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
+        + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
+
+        - astropy.table.table.Table.replace_column(self, name, col)
+        + astropy.table.table.Table.replace_column(self, name, col, copy='True')
+
+Another example to compare two files:: 
+
+    cp frappuccino/tests/old.py
+    frappuccino/t.py
+    frappuccino frappuccino.t --save t.json;
+    sleep 2;  # avoid python bytecode caching.
+    cp frappuccino/tests/new.py frappuccino/t.py;
+    frappuccino frappuccino.t --compare t.json
 
 
 
