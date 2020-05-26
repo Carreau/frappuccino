@@ -100,17 +100,17 @@ def deserialize_spec(compact_spec):
     expanded_spec = dict()
     for type_, container in compact_spec.items():
         for k, v in container.items():
-            if type_ == 'function':
+            if type_ == "function":
                 if isinstance(v, str):
-                    d = {'inf':float('inf')}
+                    d = {"inf": float("inf")}
                     try:
                         exec(f"def f{v}:pass", d)
-                        sig = sig_dump(inspect.signature(d['f']))
+                        sig = sig_dump(inspect.signature(d["f"]))
                     except:
-                        print('V is ', repr(v))
+                        print("V is ", repr(v))
                 else:
                     sig = v
-                expanded_spec[k]={'signature':sig}
+                expanded_spec[k] = {"signature": sig}
             else:
                 expanded_spec[k] = v
 
@@ -131,11 +131,12 @@ def serialize_spec(expanded_spec):
     compact_spec = defaultdict(lambda: {})
     for key, value in expanded_spec.items():
         type_ = value["type"]
-        store = {k:v for k,v in value.items() if k != 'type'}
-        if type_ == 'function':
-            store = _serialise_function_signature(store['signature'])
+        store = {k: v for k, v in value.items() if k != "type"}
+        if type_ == "function":
+            store = _serialise_function_signature(store["signature"])
         compact_spec[type_][key] = store
     return json.dumps(compact_spec, indent=2)
+
 
 def _serialise_function_signature(function_signature):
     """
@@ -145,8 +146,8 @@ def _serialise_function_signature(function_signature):
     Which we can parse back.
     """
     ps = []
-    for argname,parameter_info in function_signature:
-        if parameter_info['kind'] == 'POSITIONAL_ONLY':
+    for argname, parameter_info in function_signature:
+        if parameter_info["kind"] == "POSITIONAL_ONLY":
             return function_signature
         parameter_info = copy(parameter_info)
         default = parameter_info.pop("default")
@@ -157,9 +158,10 @@ def _serialise_function_signature(function_signature):
             default = inspect._empty
         if annotation == "<class 'inspect._empty'>":
             annotation = inspect._empty
-        ps.append(Parameter(name=name, default=default, annotation=annotation, kind=kind))
+        ps.append(
+            Parameter(name=name, default=default, annotation=annotation, kind=kind)
+        )
     return str(Signature(ps))
-
 
 
 def param_compare(old, new):
@@ -236,7 +238,7 @@ def compare(old_spec, *, spec):
     old_keys = set(old_spec.keys())
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
-    _new_keys:set = new_spec.difference(old_keys)
+    _new_keys: set = new_spec.difference(old_keys)
 
     # Todo, print that only if there are differences.
     changed_keys = []
@@ -252,12 +254,12 @@ def compare(old_spec, *, spec):
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
-                        #changed_keys.append([key, None, n])
+                        # changed_keys.append([key, None, n])
                         _new_keys.add(key)
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
-                        #changed_keys.append([key, r, None])
+                        # changed_keys.append([key, r, None])
                         old_keys.add(key)
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
@@ -274,10 +276,12 @@ def compare(old_spec, *, spec):
     new_keys = []
     for k in _new_keys:
         current_spec = spec[k]
-        if current_spec['type'] == 'function':
-            new_keys.append([k, str(format_signature_from_dump(current_spec['signature']))])
+        if current_spec["type"] == "function":
+            new_keys.append(
+                [k, str(format_signature_from_dump(current_spec["signature"]))]
+            )
         else:
-            new_keys.append([k, ''])
+            new_keys.append([k, ""])
 
     return new_keys, removed_keys, changed_keys
 
@@ -383,12 +387,12 @@ def main():
 
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
-            print('The following items are new:')
+            print("The following items are new:")
             for n in sorted(new_keys):
-                print("    +", n[0]+n[1])
+                print("    +", n[0] + n[1])
             print()
         if removed_keys:
-            print('The following items have been removed (or moved to superclass):')
+            print("The following items have been removed (or moved to superclass):")
             for o in sorted(removed_keys):
                 print("    -", o)
             print()
