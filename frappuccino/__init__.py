@@ -382,12 +382,12 @@ def main():
         new_keys, removed_keys, changed_keys = compare(loaded, spec=tree_visitor.spec)
         if new_keys:
             print('The following items are new:')
-            for n in new_keys:
+            for n in sorted(new_keys):
                 print("    +", n[0]+n[1])
             print()
         if removed_keys:
             print('The following items have been removed (or moved to superclass):')
-            for o in removed_keys:
+            for o in sorted(removed_keys):
                 print("    -", o)
             print()
         if changed_keys:
