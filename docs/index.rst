@@ -26,6 +26,27 @@ provide a continuous integration feature to fail in case of inadvertently
 breaking API, but also to provide an easy way to list all those changes in
 release notes. 
 
+
+Real life example::
+
+    $ source activate astropy-3.2
+    $ frappuccino astropy astropy.timeseries --save    astropy.json
+
+    $ source activate astropy-master
+    $ frappuccino astropy astropy.timeseries --compare astropy.json
+
+    The following signatures differ between versions:
+
+        - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
+        + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
+
+        - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
+        + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
+
+        - astropy.table.table.Table.replace_column(self, name, col)
+        + astropy.table.table.Table.replace_column(self, name, col, copy='True')
+
+
 To do so Frappuccino takes a snapshot of the API of your project at one point in
 time and compare it with the API on the master version, and list the
 differences.
@@ -90,24 +111,8 @@ Using frappuccino is pretty straitforward:
    - make sure the new version of your project library is importable, and run
      with the ``--compare`` flag ``frappuccino <import name> --compare  somename.json``
 
-For example::
+See example at top of the page.
 
-    $ source activate astropy==3.2
-    $ frappuccino astropy astropy.timeseries --save    astropy.json
-
-    $ source activate astropy=master
-    $ frappuccino astropy astropy.timeseries --compare astropy.json
-
-    The following signatures differ between versions:
-
-        - astropy.time.core.TimeDelta.to(self, *args, **kwargs)
-        + astropy.time.core.TimeDelta.to(self, unit, equivalencies='[]')
-
-        - astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True')
-        + astropy.table.table.Table.add_column(self, col, index='None', name='None', rename_duplicate='False', copy='True', default_name='None')
-
-        - astropy.table.table.Table.replace_column(self, name, col)
-        + astropy.table.table.Table.replace_column(self, name, col, copy='True')
 
 Another example to compare two files:: 
 
@@ -117,6 +122,14 @@ Another example to compare two files::
     sleep 2;  # avoid python bytecode caching.
     cp frappuccino/tests/new.py frappuccino/t.py;
     frappuccino frappuccino.t --compare t.json
+
+
+Codestyle
+---------
+
+Any color as long as it's black. isort imports. mypy does not complain too much. 
+Any other linter appreciated as long as the issues can be automatically fixed.
+The less discussion about it and the less frisson for the developer are good.
 
 
 FAQ
@@ -151,6 +164,24 @@ access to your VCS history, so checkout an old version and build it ? You can
 also upload the .json results to a non URL and grab it. The return code is not
 yet non-zero anyway as I haven't implemented all of the comparisons function
 yet. 
+
+Q: Why The name. 
+
+A: API + Frozen = frAPpuccIno, it looks like a pun only I get, so please let it
+go. 
+
+Q: The logo is horrible. 
+A: Do you have better design skills ? 
+
+
+Code of Conduct
+===============
+
+This is currently a personal project, still this is a space that should be
+considered part of the Scientific Python community. We'll follow and enforce the
+NumPy Code of conduct: https://numpy.org/code-of-conduct/
+
+
 
 
 
