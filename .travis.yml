@@ -12,10 +12,11 @@ before_install:
 
 install:
   - flit install
-  - pip install pytest coverage codecov flake8
+  - pip install pytest coverage codecov flake8 black
 
 script:
   - coverage run --source=frappuccino -m pytest
   - coverage report -m
   - codecov
-  - flake8
+  - # flake8
+  - black --check . 

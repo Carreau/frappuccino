@@ -236,8 +236,8 @@ class Visitor(BaseVisitor):
             raise ValueError(function)
         self.spec[fullqual] = {
             "type": "function",
-            ## we don't store sign here as they would not be
-            ## deep-copyable.
+            # we don't store sign here as they would not be
+            # deep-copyable.
             "signature": sig_dump(inspect.signature(function)),
         }
         self._consistent(fullqual, function)
@@ -285,7 +285,7 @@ class Visitor(BaseVisitor):
                 )
                 try:
                     mod = getattr(module, k)
-                    self.spec[f'{module.__name__}.{k}'] = {'type':'module_item'}
+                    self.spec[f"{module.__name__}.{k}"] = {"type": "module_item"}
                 except ImportError:
                     pass
                     # maybe reject ?
