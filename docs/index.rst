@@ -119,6 +119,39 @@ Another example to compare two files::
     frappuccino frappuccino.t --compare t.json
 
 
+FAQ
+===
+
+Q: Should I commit the JSON files to my repositories to not have to rerun on
+old versions of my projects ? 
+
+A: I advise not to, the on-disk file format is not stable yet newer version of
+Frappuccino might not understand it. 
+
+
+Q: Why a CLI and not as python function/test plug-in
+
+A: You usually need to run Frappuccino twice on two versions of the same library
+, so usually you can't do that in process. 
+
+
+Q: Results are wrong. 
+
+A: Open an issue please. 
+
+Q: It crashes. 
+
+A: See "Results are wrong". 
+
+
+Q: How can I use it in CI
+
+A: Good question, I'm still thinking about it, in most CI you _should_ have
+access to your VCS history, so checkout an old version and build it ? You can
+also upload the .json results to a non URL and grab it. The return code is not
+yet non-zero anyway as I haven't implemented all of the comparisons function
+yet. 
+
 
 
 Indices and tables
