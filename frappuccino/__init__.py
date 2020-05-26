@@ -236,7 +236,7 @@ def compare(old_spec, *, spec):
     old_keys = set(old_spec.keys())
     common_keys = new_spec.intersection(old_keys)
     removed_keys = old_keys.difference(new_spec)
-    _new_keys = new_spec.difference(old_keys)
+    _new_keys:set = new_spec.difference(old_keys)
 
     # Todo, print that only if there are differences.
     changed_keys = []
@@ -252,11 +252,13 @@ def compare(old_spec, *, spec):
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
-                        changed_keys.append([key, None, n])
+                        #changed_keys.append([key, None, n])
+                        _new_keys.add(key)
                 removed = [k for k in from_dump if k not in current_spec_item]
                 if removed:
                     for r in removed:
-                        changed_keys.append([key, r, None])
+                        #changed_keys.append([key, r, None])
+                        old_keys.add(key)
             elif current_spec["type"] == "function":
                 from_dump = from_dump["signature"]
                 current_spec_item = current_spec["signature"]
