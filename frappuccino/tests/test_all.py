@@ -1,10 +1,8 @@
-from frappuccino.tests import old
-from frappuccino.tests import new
+import json
 from inspect import signature
 
-import json
-
-from frappuccino import visit_modules, compare
+from frappuccino import compare, visit_modules
+from frappuccino.tests import new, old
 
 
 def fix_spec(spec, old: str, new: str):

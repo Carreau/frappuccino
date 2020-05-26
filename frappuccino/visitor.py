@@ -3,10 +3,12 @@
 
 """
 
-from types import ModuleType
-from .logging import logger as _logger
 import inspect
 import re
+from types import ModuleType
+from typing import Any, Dict, List, Set
+
+from .logging import logger as _logger
 
 hexd = re.compile("0x[0-9a-f]+")
 
@@ -90,22 +92,22 @@ class BaseVisitor:
         # can't be a set we store non-hashable objects
         # which is weird why not store memory-location -> object ?
         # anyway...
-        self.visited = list()
-        self._hash_cache = dict()
+        self.visited: List[int] = list()
+        self._hash_cache: Dict[int, str] = dict()
 
         # set of object keys that where deemed worth collecting
-        self.collected = set({})
+        self.collected: Set[str] = set({})
 
         # list of object we did not visit (for example, we encounter an object
         # not from targeted module, from the stdlib....
-        self.rejected = list()
+        self.rejected: List[str] = list()
 
         # dict of key -> custom spec that should be serialised for later
         # comparison later.
-        self.spec = dict()
+        self.spec: Dict[str, Dict] = dict()
 
         # debug, make sure 2 objects are not getting the same key
-        self._consistency = {}
+        self._consistency: Dict[str, Any] = {}
 
         if not logger:
             self.logger = _logger
