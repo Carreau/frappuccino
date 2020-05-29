@@ -107,10 +107,12 @@ def deserialize_spec(compact_spec):
                         print("V is ", repr(v))
                 else:
                     sig = v
+                assert k not in expanded_spec
                 expanded_spec[k] = {"signature": sig}
             else:
+                assert k not in expanded_spec
                 expanded_spec[k] = v
-
+            
             expanded_spec[k]["type"] = type_
     return expanded_spec
 
@@ -236,17 +238,20 @@ def compare(old_spec, *, spec):
     Todo:  yield better structured informations
 
     """
-    new_spec = set(spec.keys())
-    old_keys = set(old_spec.keys())
-    common_keys = new_spec.intersection(old_keys)
-    removed_keys = old_keys.difference(new_spec)
-    _new_keys: set = new_spec.difference(old_keys)
+    new_spec = spec
+    new_spec_keys = set(new_spec.keys())
+    old_spec_keys = set(old_spec.keys())
+
+    _common_keys  = new_spec_keys.intersection(old_spec_keys)
+    _removed_keys = old_spec_keys.difference(new_spec_keys)
+    _added_keys: set = new_spec_keys.difference(old_spec_keys)
 
     # Todo, print that only if there are differences.
     changed_keys = []
-    for key in sorted(common_keys):
+    for key in sorted(_common_keys ):
         from_dump = old_spec[key]
-        current_spec = spec[key]
+        current_spec = new_spec[key]
+
 
         if from_dump != current_spec:
 
@@ -274,8 +279,8 @@ def compare(old_spec, *, spec):
             else:
                 raise ValueError
     new_keys = []
-    for k in _new_keys:
-        current_spec = spec[k]
+    for k in _added_keys:
+        current_spec = new_spec[k]
         if current_spec["type"] == "function":
             new_keys.append(
                 [k, str(format_signature_from_dump(current_spec["signature"]))]
@@ -285,7 +290,7 @@ def compare(old_spec, *, spec):
 
     return (
         _sorted_list(new_keys),
-        _sorted_list(removed_keys),
+        _sorted_list(_removed_keys),
         _sorted_list(changed_keys),
     )
 
