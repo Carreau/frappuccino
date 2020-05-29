@@ -1,7 +1,3 @@
-import json
-
-import pytest
-
 
 def test_reference():
     from frappuccino import compare, deserialize_spec

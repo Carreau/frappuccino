@@ -285,10 +285,10 @@ class Visitor(BaseVisitor):
                 )
                 try:
                     mod = getattr(module, k)
-                    key = f"{module.__name__}.{k}" 
+                    key = f"{module.__name__}.{k}"
                     # TODO this is a workaround, right now we put a module items
                     # both object with on w.o fullqual name, so this willdepends
-                    # on dictionary order. 
+                    # on dictionary order.
                     # we want to store the moduels items differently
                     if key in self.spec:
                         continue

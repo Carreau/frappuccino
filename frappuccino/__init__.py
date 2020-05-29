@@ -112,7 +112,7 @@ def deserialize_spec(compact_spec):
             else:
                 assert k not in expanded_spec
                 expanded_spec[k] = v
-            
+
             expanded_spec[k]["type"] = type_
     return expanded_spec
 
@@ -242,16 +242,15 @@ def compare(old_spec, *, spec):
     new_spec_keys = set(new_spec.keys())
     old_spec_keys = set(old_spec.keys())
 
-    _common_keys  = new_spec_keys.intersection(old_spec_keys)
+    _common_keys = new_spec_keys.intersection(old_spec_keys)
     _removed_keys = old_spec_keys.difference(new_spec_keys)
     _added_keys: set = new_spec_keys.difference(old_spec_keys)
 
     # Todo, print that only if there are differences.
     changed_keys = []
-    for key in sorted(_common_keys ):
+    for key in sorted(_common_keys):
         from_dump = old_spec[key]
         current_spec = new_spec[key]
-
 
         if from_dump != current_spec:
 
