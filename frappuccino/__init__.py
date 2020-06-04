@@ -256,7 +256,10 @@ def compare(old_spec, *, spec):
 
             if current_spec["type"] == "type":  # Classes / Module / Function
                 current_spec_item = current_spec["items"]
-                from_dump = from_dump["items"]
+                try:
+                    from_dump = from_dump["items"]
+                except KeyError:
+                    continue
                 new = [k for k in current_spec_item if k not in from_dump]
                 if new:
                     for n in new:
@@ -275,8 +278,10 @@ def compare(old_spec, *, spec):
                         format_signature_from_dump(current_spec_item),
                     ]
                 )
+            elif current_spec["type"] == "module_item":
+                pass  # not implemented.
             else:
-                raise ValueError
+                raise ValueError(current_spec["type"])
     new_keys = []
     for k in _added_keys:
         current_spec = new_spec[k]

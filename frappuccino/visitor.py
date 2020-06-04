@@ -284,18 +284,34 @@ class Visitor(BaseVisitor):
                     % (module.__name__, k)
                 )
                 try:
-                    mod = getattr(module, k)
+                    item = getattr(module, k)
                     key = f"{module.__name__}.{k}"
                     # TODO this is a workaround, right now we put a module items
                     # both object with on w.o fullqual name, so this willdepends
                     # on dictionary order.
                     # we want to store the moduels items differently
+
+                    if isinstance(item, type):
+                        fullqual = (
+                            " (reexport of "
+                            + item.__module__
+                            + "."
+                            + item.__name__
+                            + ")"
+                        )
+                    if isinstance(item, ModuleType):
+                        if key == item.__name__:
+                            fullqual = ""
+                        else:
+                            fullqual = " (reexport of " + item.__name__ + ")"
+                    else:
+                        fullqual = ""
                     if key in self.spec:
                         continue
 
-                    self.spec[f"{module.__name__}.{k}"] = {"type": "module_item"}
+                    self.spec[f"{key}{fullqual}"] = {"type": "module_item"}
                 except ImportError:
                     pass
                     # maybe reject ?
 
-                self.visit(mod)
+                self.visit(item)
