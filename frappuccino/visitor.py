@@ -290,24 +290,37 @@ class Visitor(BaseVisitor):
                     # both object with on w.o fullqual name, so this willdepends
                     # on dictionary order.
                     # we want to store the moduels items differently
-
-                    if isinstance(item, type):
-                        fullqual = (
-                            " (reexport of "
-                            + item.__module__
-                            + "."
-                            + item.__name__
-                            + ")"
-                        )
-                    if isinstance(item, ModuleType):
-                        if key == item.__name__:
-                            fullqual = ""
+                    import typing
+                    from types import FunctionType
+                    if isinstance(item, typing._SpecialForm):
+                        fullqual = ' (reexport of typing annotation '+item.__module__ + "." + item._name+')'
+                        continue
+                    elif isinstance(item, type):
+                        if key == item.__module__+'.'+item.__name__ :
+                            fullqual=''
                         else:
-                            fullqual = " (reexport of " + item.__name__ + ")"
+                            fullqual = ' (reexport of '+item.__module__ + "." + item.__name__+')'
+                            continue
+                    elif isinstance(item, ModuleType):
+                        if key == item.__name__:
+                            fullqual = ''
+                        else:
+                            fullqual = ' (reexport of module '+item.__name__ +')'
+                            continue
+                    elif isinstance(item, FunctionType):
+                        if key == item.__module__+'.'+item.__name__ :
+                            fullqual = ''
+                        else:
+                            fullqual = ' (reexport of function '+item.__module__+'.'+item.__name__ +')'
+                            continue
                     else:
-                        fullqual = ""
+                        fullqual = ''
+
+
+
                     if key in self.spec:
                         continue
+
 
                     self.spec[f"{key}{fullqual}"] = {"type": "module_item"}
                 except ImportError:
