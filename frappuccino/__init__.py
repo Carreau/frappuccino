@@ -45,7 +45,7 @@ of this when working on dev branches, unit test may not catch all of that.
 Frappuccino is there to help.
 """
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 import argparse
 import importlib
