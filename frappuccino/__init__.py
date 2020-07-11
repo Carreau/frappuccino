@@ -441,6 +441,9 @@ def main():
                     continue
                 print(f"    - {k}.{o}")
 
+        if any([new_keys, removed_keys, changed_keys]):
+            sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
